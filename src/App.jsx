@@ -4,8 +4,21 @@ import Terminal from "./components/Terminal";
 
 function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-green-400 flex items-center justify-center">
-      <div className="w-full max-w-4xl h-[80vh] md:h-[90vh] rounded-xl border border-green-500/40 shadow-lg overflow-hidden relative">
+    <div className="min-h-screen bg-slate-950 text-green-400 flex items-center justify-center px-2 py-4 sm:px-4 md:px-6">
+      <div
+        className="
+          w-full 
+          max-w-4xl 
+          h-[80vh] 
+          sm:h-[85vh] 
+          md:h-[90vh] 
+          rounded-xl 
+          border border-green-500/40 
+          shadow-lg 
+          overflow-hidden 
+          relative
+        "
+      >
         {/* Efecto scanlines */}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] opacity-40 mix-blend-soft-light" />
         {/* Glow verde suave */}
@@ -20,11 +33,11 @@ function Layout({ children }) {
   );
 }
 
+
 function TerminalPage() {
   return <Terminal />;
 }
 
-// Ejemplo de otra vista futura (placeholder)
 function AboutPage() {
   return (
     <div className="p-4 font-mono text-sm">
@@ -51,7 +64,7 @@ function NotFoundPage() {
 
 export default function App() {
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route
           path="/"

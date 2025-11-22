@@ -130,21 +130,19 @@ export default function Terminal() {
   // Labels de monitor
   const ramLabel =
     systemStats.memoryUsedMb != null
-      ? `${systemStats.memoryUsedMb.toFixed(0)} / ${
-          systemStats.memoryLimitMb
-            ? systemStats.memoryLimitMb.toFixed(0)
-            : "?"
-        } MB`
+      ? `${systemStats.memoryUsedMb.toFixed(0)} / ${systemStats.memoryLimitMb
+        ? systemStats.memoryLimitMb.toFixed(0)
+        : "?"
+      } MB`
       : "N/D";
 
   const batteryLabel =
     systemStats.batteryLevel != null
-      ? `${Math.round(systemStats.batteryLevel * 100)}%${
-          systemStats.batteryCharging ? " (⚡)" : ""
-        }`
+      ? `${Math.round(systemStats.batteryLevel * 100)}%${systemStats.batteryCharging ? " (⚡)" : ""
+      }`
       : systemStats.batterySupported === false
-      ? "N/D"
-      : "…";
+        ? "N/D"
+        : "…";
 
   const downlinkLabel =
     typeof systemStats.downlinkMbps === "number"
@@ -165,14 +163,23 @@ export default function Terminal() {
 
   return (
     <div
-      className="relative h-full font-mono text-sm p-4 md:p-6"
+      className="
+      relative 
+      h-full 
+      font-mono 
+      text-[11px] 
+      sm:text-xs 
+      md:text-sm 
+      p-3 
+      sm:p-4 
+      md:p-6
+    "
       onClick={handleTerminalClick}
     >
       {/* Header de la ventana + info del usuario + monitor */}
       <div
-        className={`flex flex-col gap-1 mb-3 text-xs ${
-          colors.headerText || "text-green-300/70"
-        }`}
+        className={`flex flex-col gap-1 mb-3 text-xs ${colors.headerText || "text-green-300/70"
+          }`}
       >
         {/* Línea de “ventana” con los 3 puntitos */}
         <div className="flex items-center gap-2">
@@ -188,9 +195,8 @@ export default function Terminal() {
 
         {/* Línea con datos del usuario */}
         <div
-          className={`flex flex-wrap gap-x-4 gap-y-1 pl-8 text-[0.65rem] md:text-[0.7rem] ${
-            colors.headerSubText || "text-green-400/80"
-          }`}
+          className={`flex flex-wrap gap-x-4 gap-y-1 pl-8 text-[0.65rem] md:text-[0.7rem] ${colors.headerSubText || "text-green-400/80"
+            }`}
         >
           <span>user: {clientInfo.username}</span>
           <span>ip: {clientInfo.ip || "pendiente backend"}</span>
@@ -201,9 +207,8 @@ export default function Terminal() {
 
         {/* Línea tipo “monitor de recursos” */}
         <div
-          className={`flex flex-wrap gap-x-4 gap-y-1 pl-8 text-[0.65rem] md:text-[0.7rem] items-center ${
-            colors.headerMetricsText || "text-green-400/60"
-          }`}
+          className={`flex flex-wrap gap-x-4 gap-y-1 pl-8 text-[0.65rem] md:text-[0.7rem] items-center ${colors.headerMetricsText || "text-green-400/60"
+            }`}
         >
           <span>device: {systemStats.deviceType}</span>
           <span>estado: {systemStats.online ? "online" : "offline"}</span>
@@ -215,9 +220,8 @@ export default function Terminal() {
               {systemStats.netHistory.map((v, i) => (
                 <span
                   key={i}
-                  className={`w-[2px] ${
-                    colors.netBar || "bg-green-500/80"
-                  }`}
+                  className={`w-[2px] ${colors.netBar || "bg-green-500/80"
+                    }`}
                   style={{ height: `${30 + v * 70}%` }} // 30% min, 100% max
                 />
               ))}
