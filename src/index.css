@@ -1,0 +1,53 @@
+/* src/index.css */
+
+/* Activa Tailwind con el nuevo enfoque usando Vite + @tailwindcss/vite */
+@import "tailwindcss";
+
+/* Fuente global tipo terminal */
+:root {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  color-scheme: dark;
+}
+
+/* Asegura que el root ocupe toda la altura (útil para min-h-screen) */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fondo base oscuro por si algo se sale del layout */
+body {
+  background-color: #020617; /* bg-slate-950 */
+  color: #bbf7d0; /* text-green-200 aprox */
+}
+
+/* Scrollbar estilo terminal para contenedores con la clase custom-scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.5); /* verde */
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 197, 94, 0.5) transparent;
+}
+
+/* Selección de texto en verde suave */
+::selection {
+  background: rgba(34, 197, 94, 0.4);
+  color: #e5ffe5;
+}
