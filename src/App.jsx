@@ -38,22 +38,6 @@ function TerminalPage() {
   return <Terminal />;
 }
 
-function AboutPage() {
-  return (
-    <div className="p-4 font-mono text-sm">
-      <h1 className="text-lg font-bold mb-2 text-green-300">
-        OSINT Terminal – Frontend
-      </h1>
-      <p className="text-green-100/80">
-        Esta es una vista de ejemplo para futuras secciones (docs, settings, etc.).
-      </p>
-      <p className="mt-2 text-xs text-green-300/70">
-        Ruta actual: <code>/about</code>
-      </p>
-    </div>
-  );
-}
-
 function NotFoundPage() {
   return (
     <div className="p-4 font-mono text-sm text-red-400">
@@ -71,14 +55,6 @@ export default function App() {
           element={
             <Layout>
               <TerminalPage />
-            </Layout>
-          }
-        />
-        <Route
-          path="/about"
-          element={
-            <Layout>
-              <AboutPage />
             </Layout>
           }
         />

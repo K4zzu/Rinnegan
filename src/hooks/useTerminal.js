@@ -56,6 +56,11 @@ export function useTerminal() {
       return;
     }
 
+    if (command === "about") {
+      handleAbout();
+      return;
+    }
+
     if (command === "theme") {
       handleTheme(args, context);
       return;
@@ -97,6 +102,7 @@ export function useTerminal() {
         "",
         "  help                     - Muestra esta ayuda",
         "  clear                    - Limpia la pantalla",
+        "  about                    - Información sobre Rinnegan",
         "  banner                   - Muestra el banner ASCII del tema actual",
         "  theme list               - Lista temas/proyectos OSINT disponibles",
         "  theme <id>               - Cambia el tema/proyecto activo",
@@ -108,6 +114,21 @@ export function useTerminal() {
         "  osint domain <dominio>   - Lookup de dominio",
         "  osint email <email>      - Lookup de email",
         "  osint user <username>    - Lookup de usuario",
+      ].join("\n"),
+    });
+  };
+
+  const handleAbout = () => {
+    pushToHistory({
+      type: "output",
+      text: [
+        "Rinnegan — OSINT Terminal",
+        "",
+        "  SPA en React + Vite + Tailwind que simula una terminal OSINT.",
+        "  Consulta un backend FastAPI para reconocimiento de IP, dominio,",
+        "  email y usuario.",
+        "",
+        '  Escribe "help" para ver todos los comandos disponibles.',
       ].join("\n"),
     });
   };

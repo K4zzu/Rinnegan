@@ -1,7 +1,7 @@
 // src/components/PromptLine.jsx
 import Cursor from "./Cursor";
 
-export default function PromptLine({ value, onChange, inputRef, theme }) {
+export default function PromptLine({ value, onChange, onKeyDown, inputRef, theme }) {
   const colors = theme?.colors || {};
 
   // color del prefijo: qminds@osint:~$
@@ -28,6 +28,7 @@ export default function PromptLine({ value, onChange, inputRef, theme }) {
           autoFocus
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-transparent outline-none border-none"
           autoComplete="off"
           autoCorrect="off"

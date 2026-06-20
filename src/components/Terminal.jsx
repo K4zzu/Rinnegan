@@ -82,15 +82,35 @@ export default function Terminal() {
   const clientInfo = useClientInfo();
   const systemStats = useSystemStats();
 
-  // Tema activo
-  const [themeKey, setThemeKey] = useState("darknet");
+  // Tema activo (persistido en localStorage para sobrevivir reloads)
+  const THEME_STORAGE_KEY = "rinnegan:theme";
+  const [themeKey, setThemeKey] = useState(() => {
+    const saved =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem(THEME_STORAGE_KEY)
+        : null;
+    return saved && THEMES[saved] ? saved : "darknet";
+  });
   const theme = THEMES[themeKey] ?? THEMES.qminds;
   const colors = theme.colors || {};
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, themeKey);
+    } catch {
+      // localStorage no disponible (modo privado, etc.) — se ignora.
+    }
+  }, [themeKey]);
 
   const [currentInput, setCurrentInput] = useState("");
   const [isBooting, setIsBooting] = useState(true);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Historial de comandos enviados para navegar con flechas ↑/↓.
+  // commandHistory: más antiguo primero. historyIndex: -1 = no navegando.
+  const [commandHistory, setCommandHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -105,7 +125,36 @@ export default function Terminal() {
       setThemeKey,
       availableThemes: AVAILABLE_THEMES,
     });
+
+    setCommandHistory((prev) => [...prev, currentInput]);
+    setHistoryIndex(-1);
     setCurrentInput("");
+  };
+
+  // Navegación por el historial con ↑/↓ (estilo terminal).
+  const onInputKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!commandHistory.length) return;
+      const nextIndex =
+        historyIndex === -1
+          ? commandHistory.length - 1
+          : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIndex);
+      setCurrentInput(commandHistory[nextIndex]);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex === -1) return;
+      const nextIndex = historyIndex + 1;
+      if (nextIndex >= commandHistory.length) {
+        // Pasamos del último: volvemos a una línea vacía.
+        setHistoryIndex(-1);
+        setCurrentInput("");
+      } else {
+        setHistoryIndex(nextIndex);
+        setCurrentInput(commandHistory[nextIndex]);
+      }
+    }
   };
 
   useEffect(() => {
@@ -256,6 +305,7 @@ export default function Terminal() {
             <PromptLine
               value={currentInput}
               onChange={setCurrentInput}
+              onKeyDown={onInputKeyDown}
               inputRef={inputRef}
               theme={theme}
             />

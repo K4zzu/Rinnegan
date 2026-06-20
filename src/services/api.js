@@ -3,6 +3,9 @@
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+// Tiempo máximo de espera por petición (ms) antes de abortar.
+const REQUEST_TIMEOUT_MS = 10_000;
+
 async function request(path, params = {}) {
   const url = new URL(path, BASE_URL);
 
@@ -10,11 +13,24 @@ async function request(path, params = {}) {
     url.searchParams.append(key, value);
   });
 
+  // Aborta la petición si el backend no responde a tiempo, así la
+  // terminal no se queda colgada en "Procesando..." indefinidamente.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   let res;
   try {
-    res = await fetch(url.toString());
+    res = await fetch(url.toString(), { signal: controller.signal });
   } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(
+        `Tiempo de espera agotado (${REQUEST_TIMEOUT_MS / 1000}s). ` +
+          "¿Está el backend en línea?"
+      );
+    }
     throw new Error(`Error de red: ${err.message || err.toString()}`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!res.ok) {

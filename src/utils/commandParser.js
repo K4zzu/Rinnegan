@@ -11,8 +11,8 @@ export function parseCommand(input) {
   const [first, second, ...rest] = parts;
 
   // --- Comandos core simples (sin subcomandos especiales) ---
-  // help, clear, banner, netstat, sysinfo
-  if (["help", "clear", "banner", "netstat", "sysinfo"].includes(first)) {
+  // help, clear, banner, netstat, sysinfo, about
+  if (["help", "clear", "banner", "netstat", "sysinfo", "about"].includes(first)) {
     return {
       command: first,
       args: rest,
