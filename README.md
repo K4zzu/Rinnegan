@@ -1,16 +1,52 @@
-# React + Vite
+# Rinnegan
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA en React + Vite + Tailwind que simula una **terminal OSINT**. Ofrece una interfaz tipo terminal (boot animado, comandos, temas) que consulta un backend FastAPI separado para reconocimiento de IP, dominio, email y usuario.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** con JSX (sin TypeScript)
+- **Vite 7** como bundler
+- **Tailwind CSS 4** vía `@tailwindcss/vite` (configurado en CSS, sin `tailwind.config.js`)
+- **react-router-dom 7**
 
-## React Compiler
+## Requisitos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js + npm
+- (Opcional) El backend FastAPI corriendo en `http://localhost:8000` para los comandos OSINT.
 
-## Expanding the ESLint configuration
+## Desarrollo
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev      # servidor de desarrollo
+npm run lint     # ESLint
+npm run build    # build de producción → carpeta docs/
+npm run preview  # previsualiza el build
+```
+
+## Variables de entorno
+
+| Variable             | Default                 | Descripción                          |
+| -------------------- | ----------------------- | ------------------------------------ |
+| `VITE_API_BASE_URL`  | `http://localhost:8000` | URL base del backend FastAPI (OSINT) |
+
+Copia `.env.example` a `.env` y ajusta el valor si tu backend está en otra dirección.
+
+## Comandos de la terminal
+
+Escribe `help` dentro de la app para ver la lista. Resumen:
+
+- `help`, `clear`, `banner`
+- `theme list` / `theme <id>` — cambia entre temas (`qminds`, `darknet`, `cloud`)
+- `netstat`, `sysinfo`, `osint self` — info del cliente (red, sistema, fingerprint)
+- `osint ip|domain|email|user <valor>` — lookups contra el backend
+
+## Despliegue (GitHub Pages)
+
+No hay CI. El deploy es manual:
+
+1. `npm run build` (escribe en `docs/`)
+2. Commit de `docs/` y push a `main`
+3. GitHub Pages sirve directamente desde `docs/`
+
+Por eso `vite.config.js` define `base: '/Rinnegan/'` — mantenlo igual al nombre del repo o los assets se rompen en producción.
