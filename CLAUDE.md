@@ -16,6 +16,7 @@ Rinnegan is a React + Vite + Tailwind SPA that simulates an OSINT terminal UI. I
 - `npm run build` — production build, **outputs to `docs/`** (not `dist/`)
 - `npm run lint` — ESLint (the only linter; no Prettier/formatter is configured)
 - `npm run preview` — preview the production build
+- `npm test` — run the Vitest suite once; `npm run test:watch` for watch mode
 
 ## Backend dependency
 
