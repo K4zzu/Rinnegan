@@ -33,6 +33,7 @@ export default function PromptLine({ value, onChange, onKeyDown, inputRef, theme
           autoComplete="off"
           autoCorrect="off"
           spellCheck="false"
+          aria-label="Entrada de comandos de la terminal"
         />
       </div>
     </div>

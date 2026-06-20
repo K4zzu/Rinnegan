@@ -35,6 +35,7 @@ export default function AsciiBanner({ className = "", banner }) {
 
   return (
     <pre
+      aria-hidden="true"
       className={
         "text-[9px] leading-[10px] md:text-xs md:leading-4 mb-3 select-none " +
         className
