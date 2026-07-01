@@ -78,7 +78,8 @@ function BootScreen({ onFinish, theme }) {
 }
 
 export default function Terminal() {
-  const { history, isProcessing, handleCommand } = useTerminal();
+  const { history, isProcessing, statusText, handleCommand, cancelActiveStream } =
+    useTerminal();
   const clientInfo = useClientInfo();
   const systemStats = useSystemStats();
 
@@ -131,8 +132,13 @@ export default function Terminal() {
     setCurrentInput("");
   };
 
-  // Navegación por el historial con ↑/↓ (estilo terminal).
+  // Navegación por el historial con ↑/↓ (estilo terminal) y Ctrl+C.
   const onInputKeyDown = (e) => {
+    if (e.key === "c" && e.ctrlKey) {
+      // Cancela un escaneo en curso (no interfiere si no hay ninguno).
+      cancelActiveStream();
+      return;
+    }
     if (e.key === "ArrowUp") {
       e.preventDefault();
       if (!commandHistory.length) return;
@@ -297,7 +303,8 @@ export default function Terminal() {
 
           {isProcessing && (
             <div className="text-xs text-green-300 animate-pulse mt-1">
-              [*] Procesando consulta...
+              [*] {statusText || "Procesando consulta..."}{" "}
+              <span className="opacity-50">(Ctrl+C para cancelar)</span>
             </div>
           )}
 

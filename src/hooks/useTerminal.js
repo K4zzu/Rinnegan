@@ -1,23 +1,48 @@
 // src/hooks/useTerminal.js
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { parseCommand } from "../utils/commandParser";
-import {
-  osintLookupIp,
-  osintLookupDomain,
-  osintLookupEmail,
-  osintLookupUser,
-} from "../services/api";
+import { streamOsint } from "../services/api";
+
+// Mapea el comando parseado a la categoría del endpoint del backend.
+const CATEGORY_BY_COMMAND = {
+  "osint ip": "ip",
+  "osint domain": "domain",
+  "osint email": "email",
+  "osint user": "username",
+  "osint phone": "phone",
+  "osint name": "name",
+};
 
 export function useTerminal() {
   // history: array de objetos { type: 'input'|'output'|'error', text: string }
   const [history, setHistory] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Estado de progreso en vivo del escaneo (ej. "[maigret] 312/500").
+  const [statusText, setStatusText] = useState(null);
+  // Control del stream SSE activo, para poder cancelarlo.
+  const activeStreamRef = useRef(null);
 
   const pushToHistory = (entry) => {
     setHistory((prev) => [...prev, entry]);
   };
 
   const clearHistory = () => setHistory([]);
+
+  const closeActiveStream = () => {
+    if (activeStreamRef.current) {
+      activeStreamRef.current.close();
+      activeStreamRef.current = null;
+    }
+  };
+
+  // Cancelación por el usuario (Ctrl+C).
+  const cancelActiveStream = () => {
+    if (!activeStreamRef.current) return;
+    closeActiveStream();
+    setIsProcessing(false);
+    setStatusText(null);
+    pushToHistory({ type: "error", text: "^C escaneo cancelado." });
+  };
 
   /**
    * rawInput -> comando que escribe el usuario
@@ -81,9 +106,9 @@ export function useTerminal() {
       return;
     }
 
-    // Comandos OSINT que pegan al backend
+    // Comandos OSINT que pegan al backend (streaming SSE)
     if (category === "osint") {
-      await handleOsintCommand(command, args);
+      handleOsintCommand(command, args);
       return;
     }
 
@@ -412,55 +437,97 @@ OSINT TERMINAL
     });
   };
 
-  const handleOsintCommand = async (command, args) => {
-    if (!args[0]) {
+  const handleOsintCommand = (command, args) => {
+    const value = (args || []).join(" ").trim();
+    if (!value) {
       pushToHistory({
         type: "error",
-        text: `Debes proporcionar un valor. Ejemplo: ${command} 8.8.8.8`,
+        text: `Debes proporcionar un valor. Ejemplo: ${command} <valor>`,
       });
       return;
     }
 
-    const value = args[0];
-    setIsProcessing(true);
-
-    try {
-      let result;
-
-      if (command === "osint ip") {
-        result = await osintLookupIp(value);
-      } else if (command === "osint domain") {
-        result = await osintLookupDomain(value);
-      } else if (command === "osint email") {
-        result = await osintLookupEmail(value);
-      } else if (command === "osint user") {
-        result = await osintLookupUser(value);
-      } else {
-        pushToHistory({
-          type: "error",
-          text: `Comando OSINT no reconocido: ${command}`,
-        });
-        return;
-      }
-
-      const prettyJson = JSON.stringify(result, null, 2);
-      pushToHistory({ type: "output", text: prettyJson });
-    } catch (error) {
-      console.error(error);
+    const category = CATEGORY_BY_COMMAND[command];
+    if (!category) {
       pushToHistory({
         type: "error",
-        text:
-          "Error al consultar el backend: " +
-          (error.message || "Error desconocido"),
+        text: `Comando OSINT no reconocido: ${command}`,
       });
-    } finally {
-      setIsProcessing(false);
+      return;
     }
+
+    // Cierra cualquier escaneo previo antes de arrancar el nuevo.
+    closeActiveStream();
+    setIsProcessing(true);
+    setStatusText("conectando…");
+
+    const finish = () => {
+      setIsProcessing(false);
+      setStatusText(null);
+      activeStreamRef.current = null;
+    };
+
+    activeStreamRef.current = streamOsint(category, value, {
+      meta: (d) => {
+        const providers = d?.providers?.length ? d.providers.join(", ") : "—";
+        pushToHistory({
+          type: "output",
+          text: `[SCAN] ${d?.type ?? category} "${d?.query ?? value}" · fuentes: ${providers}`,
+        });
+      },
+      progress: (d) => {
+        if (!d) return;
+        setStatusText(
+          d.total
+            ? `[${d.provider}] ${d.checked}/${d.total}`
+            : `[${d.provider}] ${d.status}`
+        );
+      },
+      finding: (d) => {
+        const label = d?.source ? `${d.provider}:${d.source}` : d?.provider;
+        const conf = d?.confidence ? ` (${d.confidence})` : "";
+        pushToHistory({
+          type: "output",
+          text: `  [${label}] ${d?.title ?? ""}${conf}`,
+        });
+      },
+      source_error: (d) => {
+        pushToHistory({
+          type: "error",
+          text: `  [${d?.provider}] ${d?.error ?? "error"}`,
+        });
+      },
+      ai_report: (d) => {
+        pushToHistory({
+          type: "output",
+          text: `\n[ANÁLISIS IA]\n${d?.text ?? ""}`,
+        });
+      },
+      done: (d) => {
+        const s = d?.summary || {};
+        pushToHistory({
+          type: "output",
+          text: `[DONE] ${s.findings ?? 0} hallazgos · ${s.errors ?? 0} errores · ${s.elapsed_ms ?? "?"}ms`,
+        });
+        finish();
+      },
+      error: (err) => {
+        pushToHistory({
+          type: "error",
+          text:
+            "Error al consultar el backend: " +
+            (err?.message || "Error desconocido"),
+        });
+        finish();
+      },
+    });
   };
 
   return {
     history,
     isProcessing,
+    statusText,
     handleCommand,
+    cancelActiveStream,
   };
 }

@@ -1,15 +1,34 @@
 // src/hooks/useClientInfo.js
 import { useEffect, useState, useRef } from "react";
+import { whoami } from "../services/api";
 
 export function useClientInfo() {
   const [now, setNow] = useState(new Date());
   const [locationStatus, setLocationStatus] = useState("idle");
   const [location, setLocation] = useState(null);
+  // IP pública real, servida por el backend (/whoami). Null si el backend
+  // no está disponible → el header muestra "pendiente backend".
+  const [ip, setIp] = useState(null);
 
   // Hora en vivo
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  // Identidad del cliente desde el backend (best-effort).
+  useEffect(() => {
+    let cancelled = false;
+    whoami()
+      .then((data) => {
+        if (!cancelled) setIp(data?.ip || null);
+      })
+      .catch(() => {
+        // Backend no disponible: se queda en null, sin ruido.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Geolocalización
@@ -63,7 +82,7 @@ export function useClientInfo() {
 
   return {
     username: "guest",
-    ip: null, // luego lo alimentas desde FastAPI
+    ip, // desde /whoami; null si el backend no responde
     timeString,
     timeZone,
     locationLabel,
