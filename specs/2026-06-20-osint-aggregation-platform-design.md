@@ -2,29 +2,31 @@
 
 **Date:** 2026-06-20
 **Status:** Approved design. Source of truth for both tracks (see Working Model).
-**Scope:** v1 — núcleo de plataforma + 4 categorías (username, email, domain/IP, phone) + capa de IA. Sin imagen. Sin auth (local).
+**Scope:** v1 — plataforma + 6 categorías de entrada (username, email, phone, domain/IP, name, image) + capa de IA. Herramienta **personal, single-user, backend local**. Sin auth.
 
 ---
 
 ## 1. Purpose
 
-Rinnegan es una **terminal OSINT real** estilo osint.rocks: dado un username, email, dominio/IP o teléfono, agrega múltiples fuentes y devuelve resultados en vivo, cerrando con un análisis de IA. El frontend es la SPA existente (React + Vite, este repo). El backend es un proyecto FastAPI **separado** (repo `rinnegan-api`).
+Rinnegan es una **terminal OSINT personal** — "el ojo que todo lo ve". Dado un username, email, teléfono, dominio/IP, nombre+apellido o una foto, agrega múltiples fuentes y devuelve resultados en vivo, cerrando con un análisis de IA que correlaciona la identidad.
 
-Resultados son **best-effort y sin verificar** — se comunica explícitamente al usuario (disclaimer). No es un agregador público de alto volumen.
+- **Uso:** personal, una sola persona. Backend **local** (`localhost:8000`). Frontend = la SPA de este repo.
+- **Estética objetivo:** HUD militar / terminal / Jarvis (track de frontend, ver §9).
+- Resultados **best-effort y sin verificar** — disclaimer explícito. Uso responsable/legal.
 
 ## 2. Working Model (cómo construimos)
 
 Dos tracks en paralelo, sincronizados por este contrato:
 
-- **Backend** (repo separado, agente dedicado): Claude de este repo genera **prompts autocontenidos hito por hito**. Cada prompt incluye su parte del contrato + herramientas + criterios de aceptación + tests.
-- **Frontend** (este repo, Claude): implementa el consumo del contrato (SSE, comandos, render del reporte IA, whoami).
-- **Este documento es la fuente de verdad.** Ningún lado se desvía del contrato sin actualizarlo aquí primero.
+- **Backend** (repo separado `rinnegan-api`, agente dedicado): Claude de este repo genera **prompts autocontenidos hito por hito** (contrato + herramientas + criterios de aceptación + tests).
+- **Frontend** (este repo, Claude): implementa el consumo del contrato (SSE / streaming, comandos, subida de imagen, render del reporte IA, whoami) y el rediseño HUD.
+- **Este documento es la fuente de verdad.** Nadie se desvía del contrato sin actualizarlo aquí primero.
 
-Orden de hitos: `núcleo → domain/IP → username → email → phone → IA`.
+Orden de hitos: `núcleo → domain/IP → username → email → phone → name → image → IA`.
 
 ## 3. Architecture (backend)
 
-Enfoque modular: cada **fuente** es un provider aislado con interfaz común; cada **categoría** orquesta sus providers en paralelo (async) y emite eventos por streaming.
+Modular: cada **fuente** es un provider aislado con interfaz común; cada **categoría** orquesta sus providers en paralelo (async) y emite eventos por streaming.
 
 ```
 backend/  (repo: rinnegan-api)
@@ -40,34 +42,46 @@ backend/  (repo: rinnegan-api)
 │   │   ├── email/     (validator, emailrep, holehe)
 │   │   ├── domain/    (rdap, dns, whois, crtsh)
 │   │   ├── ip/        (ipapi, reverse_dns)
-│   │   └── phone/     (libphonenumber)
+│   │   ├── phone/     (libphonenumber)
+│   │   ├── name/      (google_cse)
+│   │   └── image/     (exif, reverse_image, face)
 │   ├── ai/analyst.py           # OpenAI: correlación + resumen + reporte
-│   └── routes/osint.py         # endpoints SSE por categoría
+│   └── routes/osint.py         # endpoints por categoría
 ├── tests/                      # pytest + respx
 ├── Dockerfile
+├── .env.example                # claves (ver §11)
 └── pyproject.toml              # uv, ruff, python 3.12
 ```
 
-**Flujo de una consulta:** EventSource → orquestador lanza providers en paralelo → cada `finding` se streamea en vivo → al terminar, el envelope agregado va a `ai/analyst.py` → reporte IA streameado → evento `done`.
+**Flujo:** cliente abre stream → orquestador lanza providers en paralelo → cada `finding` se streamea en vivo → al terminar, el envelope agregado va a `ai/analyst.py` → reporte IA streameado → evento `done`.
 
 ## 4. API Surface
 
-| Endpoint | Método | Comando terminal | Respuesta |
-|---|---|---|---|
-| `/whoami` | GET | header / `osint self` | JSON simple |
-| `/osint/ip/stream?value=` | GET (SSE) | `osint ip <ip>` | stream |
-| `/osint/domain/stream?value=` | GET (SSE) | `osint domain <dom>` | stream |
-| `/osint/email/stream?value=` | GET (SSE) | `osint email <email>` | stream |
-| `/osint/username/stream?value=` | GET (SSE) | `osint user <user>` | stream |
-| `/osint/phone/stream?value=` | GET (SSE) | `osint phone <tel>` | stream |
+**Categorías de texto** (entrada por query param, streaming SSE vía `EventSource`, GET):
+
+| Endpoint | Comando terminal |
+|---|---|
+| `GET /whoami` | header / `osint self` |
+| `GET /osint/ip/stream?value=` | `osint ip <ip>` |
+| `GET /osint/domain/stream?value=` | `osint domain <dom>` |
+| `GET /osint/email/stream?value=` | `osint email <email>` |
+| `GET /osint/username/stream?value=` | `osint user <user>` |
+| `GET /osint/phone/stream?value=` | `osint phone <tel>` |
+| `GET /osint/name/stream?value=` | `osint name "<nombre apellido>"` |
+
+**Categoría imagen** (necesita subir archivo → POST multipart; streaming vía `fetch` + ReadableStream, NO EventSource):
+
+| Endpoint | Comando terminal |
+|---|---|
+| `POST /osint/image/stream` (multipart: `file`) | `osint image` (abre selector de archivo) |
 
 `/whoami` → `{ "ip": "<public ip>", "user_agent": "...", "geo": {country, city, ...} | null }`.
 
-SSE se sirve como `text/event-stream`. GET con query param para que `EventSource` (que solo hace GET) funcione directo.
+Ambos tipos de stream emiten `text/event-stream` con el **mismo protocolo de eventos** (§5). La única diferencia es el transporte (GET+EventSource vs POST+fetch-reader).
 
 ## 5. SSE Event Protocol (contrato exacto)
 
-Cada mensaje SSE tiene un `event:` y un `data:` con JSON. Tipos:
+Cada mensaje: `event:` + `data:` JSON.
 
 ```
 event: meta
@@ -90,12 +104,11 @@ event: done
 data: { "summary": { "findings": 18, "errors": 2, "elapsed_ms": 41200 } }
 ```
 
-`status` en `progress`: `"running" | "done" | "error"`.
-`confidence` en `finding`: `"high" | "medium" | "low"`.
+`status`: `"running" | "done" | "error"`. `confidence`: `"high" | "medium" | "low"`.
 
 ## 6. Normalized Envelope (resultado agregado)
 
-El estado final también se representa como envelope (lo que recibe la IA y lo que consumiría un cliente no-streaming):
+Lo que recibe la IA y lo que consumiría un cliente no-streaming:
 
 ```json
 {
@@ -111,70 +124,94 @@ El estado final también se representa como envelope (lo que recibe la IA y lo q
 }
 ```
 
-## 7. Providers (v1) — todos sin API key salvo nota
+## 7. Providers (v1)
 
 **Interfaz:**
 ```python
 class Provider:
     name: str
-    category: str          # "username"|"email"|"domain"|"ip"|"phone"
+    category: str          # "username"|"email"|"domain"|"ip"|"phone"|"name"|"image"
     requires_key: bool = False
-    async def stream(self, value: str) -> AsyncIterator[Event]: ...
+    async def stream(self, value) -> AsyncIterator[Event]: ...
 ```
 
-| Categoría | Provider | Emite | Notas |
-|---|---|---|---|
-| username | `maigret` | sitios donde existe el usuario | async nativo, ~500 sitios default. **Primario.** |
-| | `sherlock` | segunda opinión | subprocess. Secundario, opt-in por flag. |
-| email | `validator` | sintaxis + MX | `email-validator`, instantáneo |
-| | `emailrep` | reputación / exposición | emailrep.io sin key a bajo rate; degrada elegante |
-| | `holehe` | sitios donde el email está registrado | ⚠️ semi-abandonado; aislado para parchear sin romper el resto |
-| domain | `rdap` + `whois` | registrar, fechas, NS | RDAP (JSON) preferido, WHOIS fallback |
-| | `dns` | A/AAAA/MX/TXT/NS | `dnspython` |
-| | `crtsh` | subdominios (Certificate Transparency) | crt.sh, con rate/cortesía |
-| ip | `ipapi` | geo, ISP, ASN | ip-api.com (45 req/min) |
-| | `reverse_dns` | hostname(s) | stdlib |
-| phone | `libphonenumber` | país, operador, tipo, validez | `phonenumbers`, parsing local sin red |
+| Categoría | Provider | Emite | Cuenta/Key | Notas |
+|---|---|---|---|---|
+| username | `maigret` | sitios donde existe el usuario | no | async nativo, ~500 sitios. **Primario.** |
+| | `sherlock` | segunda opinión | no | subprocess. Secundario, opt-in. |
+| email | `validator` | sintaxis + MX | no | `email-validator` |
+| | `emailrep` | reputación/exposición | no | emailrep.io sin key a bajo rate |
+| | `holehe` | sitios donde el email está registrado | no | ⚠️ semi-abandonado, aislado para parchear |
+| domain | `rdap`+`whois` | registrar, fechas, NS | no | RDAP preferido, WHOIS fallback |
+| | `dns` | A/AAAA/MX/TXT/NS | no | `dnspython` |
+| | `crtsh` | subdominios (CT) | no | crt.sh, con rate/cortesía |
+| ip | `ipapi` | geo, ISP, ASN | no | ip-api.com (45 req/min) |
+| | `reverse_dns` | hostname(s) | no | stdlib |
+| phone | `libphonenumber` | país, operador, tipo, validez | no | `phonenumbers`, local sin red |
+| **name** | `google_cse` | posibles matches (perfiles, páginas) | **Sí: Google CSE** | 100 búsq/día gratis. Con apellido → filtro más estricto |
+| **image** | `exif` | GPS, fecha, dispositivo | no | `Pillow`/`exifread`, local. Alto valor |
+| | `reverse_image` | dónde aparece la imagen + entidades | **Sí: Google Vision** | Web Detection, 1.000/mes gratis |
+| | `face` | detección + encoding facial; correlación 1:1 | no | InsightFace, local, dep pesada |
 
-**Reglas:** cada provider falla aislado (→ `source_error`), nunca tumba el escaneo. Cada provider testeable solo (pytest + respx). Concurrencia limitada por provider (evita falsos positivos por rate-limit).
+**Reglas:** cada provider falla aislado (→ `source_error`), nunca tumba el escaneo. Testeable solo (pytest + respx). Concurrencia limitada por provider (evita falsos positivos por rate-limit).
+
+**Nota sobre `face`:** en v1 detecta/encodea rostros de la imagen subida y expone comparación 1:1. La correlación automática "misma cara en varios perfiles encontrados" (bajar las fotos de perfil de un escaneo de username y compararlas) es un objetivo alcanzable que puede vivir en el orquestador/IA; se marca como enhancement de v1 si el tiempo lo permite, sin bloquear el resto.
 
 ## 8. AI Layer (`ai/analyst.py`)
 
 - **Trigger:** automático al cerrar cada escaneo.
-- **Entrada:** el envelope normalizado completo.
+- **Entrada:** el envelope normalizado completo (incluye señales de imagen: EXIF, matches faciales si los hay).
 - **Proceso** (un prompt estructurado): correlación de identidad · resumen ejecutivo · señales/risk notes · pivots sugeridos.
 - **Salida:** markdown, streameado como `ai_report`.
-- **Proveedor:** OpenAI (key del usuario, `OPENAI_API_KEY`). Slot intercambiable.
-- **Guardas:** `OPENAI_MODEL` (default `gpt-4o-mini`), truncado de findings si exceden el límite de tokens, disclaimer fijo de "datos sin verificar".
+- **Proveedor:** OpenAI (`OPENAI_API_KEY`). Slot intercambiable.
+- **Guardas:** `OPENAI_MODEL` (default `gpt-4o-mini`), truncado de findings si exceden tokens, disclaimer fijo.
 
 ## 9. Frontend Integration (este repo)
 
-- `services/api.js`: nueva `streamOsint(category, value, handlers)` con `EventSource`; `whoami` con `fetch`. Reemplaza las `osintLookup*` actuales.
-- `hooks/useTerminal.js`: `handleOsintCommand` abre el stream e imprime `finding` en vivo, muestra `progress`, renderiza `ai_report` como bloque `[ANÁLISIS IA]`, cierra en `done`.
-- **Cancelación:** Ctrl+C / comando cierra el `EventSource` en curso (resuelve el problema del timeout de raíz).
-- `whoami` al boot llena `ip`/`username` reales en el header (elimina `ip:null` y `"guest"` hardcodeados).
-- Comando nuevo `osint phone <tel>` + actualizar parser y `help`.
+- `services/api.js`:
+  - `streamOsint(category, value, handlers)` con `EventSource` para categorías de texto.
+  - `streamOsintImage(file, handlers)` con `fetch` + ReadableStream (POST multipart) para imagen.
+  - `whoami()` con `fetch`.
+- `hooks/useTerminal.js`: los comandos abren el stream, imprimen `finding` en vivo, muestran `progress`, renderizan `ai_report` como bloque `[ANÁLISIS IA]`, cierran en `done`.
+- **Cancelación:** Ctrl+C / comando cierra el stream en curso (resuelve el timeout de raíz).
+- `whoami` al boot llena `ip`/`username` reales (elimina `ip:null` / `"guest"`).
+- **Comandos nuevos:** `osint phone <tel>`, `osint name "<nombre apellido>"`, `osint image` (dispara selector de archivo / drop zone). Actualizar parser y `help`.
+- **Estética HUD / Jarvis (track propio):** rediseño visual con el skill frontend-design una vez fluyan datos. Paneles tipo HUD, escaneo en vivo, tipografía militar. No bloquea el backend.
 
 ## 10. Operation & Errors
 
-- **CORS:** v1 permite `http://localhost:5173` (dev); origen de Pages configurable para después.
+- **CORS:** permite `http://localhost:5173` (dev). (Frontend de Pages queda como vitrina; ver nota de mixed-content abajo.)
 - **Errores:** aislados por fuente; resultado siempre parcial-útil.
 - **Rate-limit/bloqueo:** concurrencia limitada por provider; `confidence` por finding.
-- **Disclaimer:** en el reporte IA y en `about` — best-effort, sin verificar, uso responsable/legal.
-- **Auth:** ninguna en v1 (local). Auth + rate-limit por usuario + logging = **transversal obligatorio antes de cualquier deploy público** (mínimo legal/anti-abuso).
+- **Disclaimer:** en el reporte IA y en `about`.
+- **Auth:** ninguna — herramienta personal, backend local, single-user.
+- **Mixed-content (importante):** el frontend desplegado en Pages (HTTPS) llamando a `http://localhost:8000` puede ser bloqueado por el navegador. **Mientras el backend sea local, usar la herramienta con el frontend en local (`npm run dev`) apuntando a localhost.** La versión de Pages queda como demo visual. Se resuelve cuando el backend tenga HTTPS (v2).
 
-## 11. Stack & Quality (backend)
+## 11. Accounts & Keys (backend `.env`, nunca en frontend)
 
-FastAPI · httpx · pydantic v2 · `dnspython`, `python-whois`, `email-validator`, `maigret`, `phonenumbers` · pytest + respx · ruff · uv · Python 3.12 · Dockerfile listo para deploy futuro.
+| Variable | Servicio | ¿Crear cuenta? | Tier |
+|---|---|---|---|
+| `OPENAI_API_KEY` | OpenAI (IA) | Ya la tiene | de pago (suyo) |
+| `GOOGLE_CSE_ID` + `GOOGLE_CSE_KEY` | Google Custom Search (name) | **Sí, gratis** | 100 búsq/día |
+| `GOOGLE_VISION_API_KEY` | Google Cloud Vision (reverse_image) | **Sí, gratis** | 1.000/mes |
+| `OPENAI_MODEL` | (opcional) | — | default `gpt-4o-mini` |
 
-## 12. Roadmap (fuera de v1)
+Providers cuyo key falta → se auto-desactivan y reportan `source_error` "sin credencial", sin romper el escaneo.
 
-- **v2:** `osint phone` con footprint extendido · reverse image search **de pago** (TinEye/SerpApi) · enriquecimiento con keys opcionales (Censys, AbuseIPDB, HIBP) · persistencia + **pivoting** real · auth + rate-limit + deploy HTTPS.
-- **Descartado a propósito:** búsqueda facial de la web abierta — inviable legal (GDPR Art. 9, BIPA, precedente Clearview) e infraestructuralmente.
+## 12. Stack & Quality (backend)
 
-## 13. Constraints / Honest Limitations (de la investigación)
+FastAPI · httpx · pydantic v2 · `dnspython`, `python-whois`, `email-validator`, `maigret`, `phonenumbers`, `Pillow`/`exifread`, `insightface`, `google-api-python-client` / Vision REST · pytest + respx · ruff · uv · Python 3.12 · Dockerfile listo para deploy futuro.
 
-- Correr Sherlock/Holehe a escala desde IP de datacenter: 20–60% de éxito en sitios protegidos; falsos positivos al rate-limitear. Por eso concurrencia limitada + `confidence` + disclaimer.
-- Listas de sitios (Maigret/Sherlock/WhatsMyName) se degradan; requiere mantenimiento periódico.
-- No hay API gratis real de email→brechas. HIBP de pago; Pwned Passwords (gratis) es solo passwords.
-- Holehe está semi-abandonado: se aísla para poder parchearlo.
+## 13. Roadmap (fuera de v1)
+
+- **v2:** reverse image premium (TinEye/SerpApi, mayor cobertura) · enriquecimiento con keys opcionales (Censys, AbuseIPDB, HIBP) · persistencia + **pivoting** real · correlación facial automática cross-perfil completa · deploy del backend con HTTPS (habilita usar el frontend de Pages contra el backend real) · auth si deja de ser single-user.
+- **Descartado a propósito:** búsqueda facial de la web abierta (subir rostro → encontrarlo en todos lados) — no existe API gratis/legal (GDPR Art. 9, BIPA, precedente Clearview) e infra-inviable.
+
+## 14. Constraints / Honest Limitations (de la investigación)
+
+- Sherlock/Holehe desde IP de datacenter: 20–60% de éxito en sitios protegidos; falsos positivos al rate-limitear. → concurrencia limitada + `confidence` + disclaimer. (Local mitiga esto: tu IP residencial.)
+- Listas de sitios (Maigret/Sherlock) se degradan; mantenimiento periódico.
+- No hay API gratis real de email→brechas (HIBP de pago).
+- Holehe semi-abandonado: aislado para parchearlo.
+- Búsqueda por nombre es la más débil (people-search); Google CSE + redes da resultados razonables pero no exhaustivos.
+- Reverse image (Google Vision) encuentra la imagen o similares/entidades, no "esta persona en la web".
