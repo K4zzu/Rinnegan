@@ -258,12 +258,15 @@ export function useTerminal() {
           type: "scan",
           scan: "ai",
           text:
-            'Identidad correlacionada: "demo_user" aparece en 5 plataformas.\n' +
-            "• GitHub, Telegram e Instagram comparten el mismo handle (señal alta).\n" +
-            "• StackOverflow es una URL de búsqueda — posible falso positivo (media).\n" +
-            "• Email vinculado detectado vía Spotify.\n\n" +
-            "Pivots sugeridos: extraer el email del perfil de GitHub y correr `osint email`.\n" +
-            "— Resultados best-effort, sin verificar.",
+            "## Resumen\n" +
+            'La identidad **"demo_user"** aparece en 5 plataformas con handle consistente.\n\n' +
+            "## Correlación de identidad\n" +
+            "- **GitHub**, **Telegram** e **Instagram** comparten el mismo handle (señal alta).\n" +
+            "- **StackOverflow** es una URL de búsqueda — posible falso positivo (media).\n" +
+            "- Email vinculado detectado vía **Spotify**.\n\n" +
+            "## Pivots sugeridos\n" +
+            "- Extraer el email del perfil de GitHub y correr `osint email <...>`.\n\n" +
+            "— Análisis automático sobre datos sin verificar; validar antes de actuar.",
         });
       }, delay)
     );

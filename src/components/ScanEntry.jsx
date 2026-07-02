@@ -2,6 +2,8 @@
 // Renderiza cada evento de un escaneo OSINT con estética HUD. El color y el
 // glifo codifican la "confianza" del hallazgo para que se distingan de un
 // vistazo (verde=alta, ámbar=media, gris=baja, rojo=error).
+import Markdown from "./Markdown";
+import { platformIcon } from "../utils/platformIcon";
 
 const CONFIDENCE = {
   high: { color: "#34d399", glyph: "◉", label: "HIGH" },
@@ -47,6 +49,7 @@ export default function ScanEntry({ entry, theme }) {
     case "finding": {
       const c = CONFIDENCE[entry.confidence] || CONFIDENCE.low;
       const label = entry.source ? `${entry.provider}·${entry.source}` : entry.provider;
+      const icon = platformIcon(entry.source);
       return (
         <div
           className="finding-in flex items-center gap-2 py-[3px] pl-2 border-l-2 text-xs md:text-sm"
@@ -55,6 +58,11 @@ export default function ScanEntry({ entry, theme }) {
           <span style={{ color: c.color }} className="select-none text-[0.7rem]">
             {c.glyph}
           </span>
+          {icon ? (
+            <span className="select-none text-[0.8rem] leading-none" aria-hidden="true">
+              {icon}
+            </span>
+          ) : null}
           <Badge>{label}</Badge>
           <span className="min-w-0 flex-1 truncate">
             {entry.url ? (
@@ -107,9 +115,7 @@ export default function ScanEntry({ entry, theme }) {
             <span>Análisis · IA</span>
             <span className="flex-1 h-px bg-current/20" />
           </div>
-          <div className="whitespace-pre-wrap break-words leading-snug text-xs md:text-sm text-white/85">
-            {entry.text}
-          </div>
+          <Markdown text={entry.text} className="text-xs md:text-sm text-white/85" />
         </div>
       );
 
