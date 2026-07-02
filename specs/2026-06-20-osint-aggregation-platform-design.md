@@ -97,6 +97,9 @@ data: { "provider": "maigret", "source": "github", "title": "github.com/kazzu",
 event: source_error
 data: { "provider": "holehe", "error": "module timeout" }
 
+event: media
+data: { "items": [ { "source": "github", "image_url": "https://github.com/torvalds.png", "page_url": "https://github.com/torvalds", "title": "GitHub", "confidence": "high" } ] }
+
 event: ai_report
 data: { "format": "markdown", "text": "## Resumen\n..." }
 
@@ -105,6 +108,8 @@ data: { "summary": { "findings": 18, "errors": 2, "elapsed_ms": 41200 } }
 ```
 
 `status`: `"running" | "done" | "error"`. `confidence`: `"high" | "medium" | "low"`.
+
+**`media`** (evento batch, una vez, tras los findings y antes de `ai_report`): avatares/imágenes extraídas de los perfiles (GitHub `github.com/<user>.png`, Gravatar, `og:image` best-effort). Muchas redes (X, LinkedIn, Instagram) bloquean → se omiten. El frontend lo renderiza como una galería de miniaturas.
 
 ## 6. Normalized Envelope (resultado agregado)
 
@@ -162,7 +167,7 @@ class Provider:
 
 - **Trigger:** automático al cerrar cada escaneo.
 - **Entrada:** el envelope normalizado completo (incluye señales de imagen: EXIF, matches faciales si los hay).
-- **Proceso** (un prompt estructurado): correlación de identidad · resumen ejecutivo · señales/risk notes · pivots sugeridos.
+- **Proceso** (un prompt estructurado): **inferencia de identidad real** (ej. `torvalds`→Linus Torvalds, con confianza + guardas anti-alucinación: solo con señal fuerte, marcado "sin verificar", nunca fabricar datos) · sección "¿Quién es?" · correlación de identidad · resumen · señales/riesgo · pivots.
 - **Salida:** markdown, streameado como `ai_report`.
 - **Proveedor:** OpenAI (`OPENAI_API_KEY`). Slot intercambiable.
 - **Guardas:** `OPENAI_MODEL` (default `gpt-4o-mini`), truncado de findings si exceden tokens, disclaimer fijo.

@@ -256,6 +256,22 @@ export function useTerminal() {
       setTimeout(() => {
         pushToHistory({
           type: "scan",
+          scan: "media",
+          items: [
+            { source: "github", image_url: "https://github.com/torvalds.png", page_url: "https://github.com/torvalds", title: "GitHub", confidence: "high" },
+            { source: "github", image_url: "https://github.com/gvanrossum.png", page_url: "https://github.com/gvanrossum", title: "GitHub", confidence: "high" },
+            { source: "gravatar", image_url: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=identicon&s=128", page_url: "#", title: "Gravatar", confidence: "medium" },
+          ],
+        });
+        sound.finding("high");
+      }, delay)
+    );
+    delay += 480;
+
+    demoTimersRef.current.push(
+      setTimeout(() => {
+        pushToHistory({
+          type: "scan",
           scan: "ai",
           text:
             "## Resumen\n" +
@@ -642,6 +658,11 @@ OSINT TERMINAL
           provider: d?.provider,
           error: d?.error ?? "error",
         });
+      },
+      media: (d) => {
+        if (!d?.items?.length) return;
+        sound.finding("high");
+        pushToHistory({ type: "scan", scan: "media", items: d.items });
       },
       ai_report: (d) => {
         pushToHistory({ type: "scan", scan: "ai", text: d?.text ?? "" });

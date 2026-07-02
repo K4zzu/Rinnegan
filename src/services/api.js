@@ -51,6 +51,7 @@ const SSE_EVENTS = [
   "progress",
   "finding",
   "source_error",
+  "media",
   "ai_report",
   "done",
 ];
