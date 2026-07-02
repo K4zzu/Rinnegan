@@ -3,7 +3,8 @@
 // subconjunto que produce el analista (encabezados ##, viñetas, **negrita**,
 // `código`). Construye nodos React (no usa dangerouslySetInnerHTML → sin XSS).
 
-const INLINE = /(\*\*([^*]+)\*\*|`([^`]+)`)/g;
+// **negrita** | `código` | [texto](url)
+const INLINE = /(\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
 
 function renderInline(text, keyBase) {
   const nodes = [];
@@ -28,6 +29,24 @@ function renderInline(text, keyBase) {
           {m[3]}
         </code>
       );
+    } else if (m[4] !== undefined) {
+      const href = m[5];
+      // Solo enlaces http(s); si no, se muestra como texto.
+      if (/^https?:\/\//i.test(href)) {
+        nodes.push(
+          <a
+            key={`${keyBase}-a${i}`}
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:opacity-80"
+          >
+            {m[4]}
+          </a>
+        );
+      } else {
+        nodes.push(m[4]);
+      }
     }
     last = m.index + m[0].length;
     i++;
