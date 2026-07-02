@@ -4,15 +4,14 @@ import Terminal from "./components/Terminal";
 
 function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-green-400 flex items-center justify-center px-2 py-4 sm:px-4 md:px-6">
+    <div className="min-h-dvh bg-slate-950 text-green-400 flex items-center justify-center px-2 py-3 sm:px-4 sm:py-4 md:px-6">
       <div
         className="
-          w-full 
-          max-w-4xl 
-          h-[80vh] 
-          sm:h-[85vh] 
-          md:h-[90vh] 
-          rounded-xl 
+          w-full
+          max-w-4xl
+          h-[88dvh]
+          md:h-[90dvh]
+          rounded-xl
           border border-green-500/40 
           shadow-lg 
           overflow-hidden 

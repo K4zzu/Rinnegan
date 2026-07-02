@@ -23,6 +23,7 @@ body,
 body {
   background-color: #020617; /* bg-slate-950 */
   color: #bbf7d0; /* text-green-200 aprox */
+  overflow-x: hidden; /* evita scroll horizontal en móvil */
 }
 
 /* Scrollbar estilo terminal para contenedores con la clase custom-scrollbar */

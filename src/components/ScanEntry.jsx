@@ -56,7 +56,7 @@ export default function ScanEntry({ entry, theme }) {
             {c.glyph}
           </span>
           <Badge>{label}</Badge>
-          <span className="flex-1 truncate">
+          <span className="min-w-0 flex-1 truncate">
             {entry.url ? (
               <a
                 href={entry.url}
@@ -90,7 +90,9 @@ export default function ScanEntry({ entry, theme }) {
             ⚠
           </span>
           <Badge>{entry.provider}</Badge>
-          <span className="flex-1 truncate text-red-300/80">{entry.error}</span>
+          <span className="min-w-0 flex-1 truncate text-red-300/80">
+            {entry.error}
+          </span>
           <span className="shrink-0 text-[0.55rem] uppercase tracking-wider text-red-400">
             ERR
           </span>
@@ -105,7 +107,7 @@ export default function ScanEntry({ entry, theme }) {
             <span>Análisis · IA</span>
             <span className="flex-1 h-px bg-current/20" />
           </div>
-          <div className="whitespace-pre-wrap leading-snug text-xs md:text-sm text-white/85">
+          <div className="whitespace-pre-wrap break-words leading-snug text-xs md:text-sm text-white/85">
             {entry.text}
           </div>
         </div>

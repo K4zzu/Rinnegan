@@ -9,7 +9,8 @@ export default function OutputLine({ entry, theme }) {
     return <ScanEntry entry={entry} theme={theme} />;
   }
 
-  const baseClass = "whitespace-pre-wrap leading-snug text-xs md:text-sm";
+  const baseClass =
+    "whitespace-pre-wrap break-words leading-snug text-xs md:text-sm";
 
   const prefixClass = colors.promptUser || "text-green-300";
   const inputTextClass =
