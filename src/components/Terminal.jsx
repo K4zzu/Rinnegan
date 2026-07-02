@@ -6,6 +6,7 @@ import PromptLine from "./PromptLine";
 import OutputLine from "./OutputLine";
 import AsciiBanner from "./AsciiBanner";
 import { THEMES, AVAILABLE_THEMES } from "../theme/themes";
+import { sound } from "../utils/sound";
 
 // Líneas de boot (solo texto, el color lo da el tema)
 const BOOT_LINES = [
@@ -78,8 +79,14 @@ function BootScreen({ onFinish, theme }) {
 }
 
 export default function Terminal() {
-  const { history, isProcessing, statusText, handleCommand, cancelActiveStream } =
-    useTerminal();
+  const {
+    history,
+    isProcessing,
+    statusText,
+    scanProgress,
+    handleCommand,
+    cancelActiveStream,
+  } = useTerminal();
   const clientInfo = useClientInfo();
   const systemStats = useSystemStats();
 
@@ -116,6 +123,9 @@ export default function Terminal() {
   const onSubmit = (e) => {
     e.preventDefault();
     if (!currentInput.trim()) return;
+
+    // El envío es un gesto de usuario: habilita el audio del navegador.
+    sound.unlock();
 
     // Pasamos TODO el contexto al hook (tema, stats, user, etc.)
     handleCommand(currentInput, {
@@ -302,9 +312,29 @@ export default function Terminal() {
           ))}
 
           {isProcessing && (
-            <div className="text-xs text-green-300 animate-pulse mt-1">
-              [*] {statusText || "Procesando consulta..."}{" "}
-              <span className="opacity-50">(Ctrl+C para cancelar)</span>
+            <div className="mt-1 text-xs">
+              <div
+                className={`flex items-center gap-2 ${colors.headerMetricsText || "text-green-300"}`}
+              >
+                <span className="animate-pulse">▸</span>
+                <span className="animate-pulse">
+                  {statusText || "procesando…"}
+                </span>
+                <span className="opacity-40">(Ctrl+C para cancelar)</span>
+              </div>
+              {scanProgress?.total ? (
+                <div className="mt-1 h-1 w-full max-w-md overflow-hidden rounded-sm bg-white/5">
+                  <div
+                    className={`h-full transition-[width] duration-200 ease-out ${colors.netBar || "bg-green-500/80"}`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round((scanProgress.checked / scanProgress.total) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              ) : null}
             </div>
           )}
 

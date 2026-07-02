@@ -1,7 +1,13 @@
 // src/components/OutputLine.jsx
+import ScanEntry from "./ScanEntry";
 
 export default function OutputLine({ entry, theme }) {
   const colors = theme?.colors || {};
+
+  // Los eventos de un escaneo OSINT se renderizan con estética HUD.
+  if (entry.type === "scan") {
+    return <ScanEntry entry={entry} theme={theme} />;
+  }
 
   const baseClass = "whitespace-pre-wrap leading-snug text-xs md:text-sm";
 

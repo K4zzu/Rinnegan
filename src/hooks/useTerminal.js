@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { parseCommand } from "../utils/commandParser";
 import { streamOsint } from "../services/api";
+import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
 const CATEGORY_BY_COMMAND = {
@@ -19,8 +20,12 @@ export function useTerminal() {
   const [isProcessing, setIsProcessing] = useState(false);
   // Estado de progreso en vivo del escaneo (ej. "[maigret] 312/500").
   const [statusText, setStatusText] = useState(null);
+  // Progreso numérico para la barra HUD: { provider, checked, total } | null.
+  const [scanProgress, setScanProgress] = useState(null);
   // Control del stream SSE activo, para poder cancelarlo.
   const activeStreamRef = useRef(null);
+  // Timers de la demo local (para poder cancelarla).
+  const demoTimersRef = useRef([]);
 
   const pushToHistory = (entry) => {
     setHistory((prev) => [...prev, entry]);
@@ -28,19 +33,27 @@ export function useTerminal() {
 
   const clearHistory = () => setHistory([]);
 
+  const clearDemoTimers = () => {
+    demoTimersRef.current.forEach(clearTimeout);
+    demoTimersRef.current = [];
+  };
+
   const closeActiveStream = () => {
     if (activeStreamRef.current) {
       activeStreamRef.current.close();
       activeStreamRef.current = null;
     }
+    clearDemoTimers();
   };
 
   // Cancelación por el usuario (Ctrl+C).
   const cancelActiveStream = () => {
-    if (!activeStreamRef.current) return;
+    const wasActive = activeStreamRef.current || demoTimersRef.current.length;
+    if (!wasActive) return;
     closeActiveStream();
     setIsProcessing(false);
     setStatusText(null);
+    setScanProgress(null);
     pushToHistory({ type: "error", text: "^C escaneo cancelado." });
   };
 
@@ -86,6 +99,16 @@ export function useTerminal() {
       return;
     }
 
+    if (command === "sound") {
+      handleSound(args);
+      return;
+    }
+
+    if (command === "demo") {
+      handleDemo();
+      return;
+    }
+
     if (command === "theme") {
       handleTheme(args, context);
       return;
@@ -128,6 +151,8 @@ export function useTerminal() {
         "  help                     - Muestra esta ayuda",
         "  clear                    - Limpia la pantalla",
         "  about                    - Información sobre Rinnegan",
+        "  demo                     - Escaneo simulado (previsualiza la estética HUD)",
+        "  sound [on|off]           - Activa/desactiva los sonidos",
         "  banner                   - Muestra el banner ASCII del tema actual",
         "  theme list               - Lista temas/proyectos OSINT disponibles",
         "  theme <id>               - Cambia el tema/proyecto activo",
@@ -141,6 +166,110 @@ export function useTerminal() {
         "  osint user <username>    - Lookup de usuario",
       ].join("\n"),
     });
+  };
+
+  const handleSound = (args = []) => {
+    const sub = (args[0] || "").toLowerCase();
+    let on;
+    if (sub === "on") {
+      sound.setEnabled(true);
+      on = true;
+    } else if (sub === "off") {
+      sound.setEnabled(false);
+      on = false;
+    } else {
+      on = sound.toggle();
+    }
+    sound.unlock();
+    pushToHistory({
+      type: "output",
+      text: `[SOUND] sonido ${on ? "activado" : "desactivado"}.`,
+    });
+  };
+
+  // Escaneo simulado para previsualizar la estética HUD sin backend.
+  const handleDemo = () => {
+    closeActiveStream();
+    sound.unlock();
+    setIsProcessing(true);
+    setStatusText("demo…");
+
+    const items = [
+      { provider: "maigret", source: "github", title: "github.com/demo_user", url: "https://github.com/demo_user", confidence: "high" },
+      { provider: "maigret", source: "telegram", title: "t.me/demo_user", url: "https://t.me/demo_user", confidence: "high" },
+      { provider: "maigret", source: "instagram", title: "instagram.com/demo_user", url: "https://instagram.com/demo_user", confidence: "high" },
+      { provider: "maigret", source: "stackoverflow", title: "stackoverflow.com/users?search=demo_user", url: null, confidence: "medium" },
+      { provider: "sherlock", source: "reddit", title: "reddit.com/user/demo_user", url: "https://reddit.com/user/demo_user", confidence: "high" },
+      { provider: "holehe", source: "spotify", title: "email registrado en Spotify", url: null, confidence: "medium" },
+    ];
+
+    sound.scanStart();
+    pushToHistory({
+      type: "scan",
+      scan: "start",
+      kind: "username",
+      query: "demo_user",
+      providers: ["maigret", "sherlock", "holehe"],
+    });
+
+    let delay = 350;
+    items.forEach((it, i) => {
+      demoTimersRef.current.push(
+        setTimeout(() => {
+          setScanProgress({ provider: it.provider, checked: i + 1, total: items.length });
+          pushToHistory({ type: "scan", scan: "finding", ...it });
+          sound.finding(it.confidence);
+        }, delay)
+      );
+      delay += 480;
+    });
+
+    demoTimersRef.current.push(
+      setTimeout(() => {
+        pushToHistory({
+          type: "scan",
+          scan: "source-error",
+          provider: "sherlock",
+          error: "sherlock_not_installed",
+        });
+        sound.error();
+      }, delay)
+    );
+    delay += 480;
+
+    demoTimersRef.current.push(
+      setTimeout(() => {
+        pushToHistory({
+          type: "scan",
+          scan: "ai",
+          text:
+            'Identidad correlacionada: "demo_user" aparece en 5 plataformas.\n' +
+            "• GitHub, Telegram e Instagram comparten el mismo handle (señal alta).\n" +
+            "• StackOverflow es una URL de búsqueda — posible falso positivo (media).\n" +
+            "• Email vinculado detectado vía Spotify.\n\n" +
+            "Pivots sugeridos: extraer el email del perfil de GitHub y correr `osint email`.\n" +
+            "— Resultados best-effort, sin verificar.",
+        });
+      }, delay)
+    );
+    delay += 420;
+
+    demoTimersRef.current.push(
+      setTimeout(() => {
+        pushToHistory({
+          type: "scan",
+          scan: "done",
+          findings: items.length,
+          errors: 1,
+          elapsed: 2600,
+        });
+        sound.done();
+        setIsProcessing(false);
+        setStatusText(null);
+        setScanProgress(null);
+        demoTimersRef.current = [];
+      }, delay)
+    );
   };
 
   const handleAbout = () => {
@@ -460,19 +589,25 @@ OSINT TERMINAL
     closeActiveStream();
     setIsProcessing(true);
     setStatusText("conectando…");
+    setScanProgress(null);
+    sound.unlock();
 
     const finish = () => {
       setIsProcessing(false);
       setStatusText(null);
+      setScanProgress(null);
       activeStreamRef.current = null;
     };
 
     activeStreamRef.current = streamOsint(category, value, {
       meta: (d) => {
-        const providers = d?.providers?.length ? d.providers.join(", ") : "—";
+        sound.scanStart();
         pushToHistory({
-          type: "output",
-          text: `[SCAN] ${d?.type ?? category} "${d?.query ?? value}" · fuentes: ${providers}`,
+          type: "scan",
+          scan: "start",
+          kind: d?.type ?? category,
+          query: d?.query ?? value,
+          providers: d?.providers ?? [],
         });
       },
       progress: (d) => {
@@ -482,36 +617,48 @@ OSINT TERMINAL
             ? `[${d.provider}] ${d.checked}/${d.total}`
             : `[${d.provider}] ${d.status}`
         );
+        setScanProgress(
+          d.total ? { provider: d.provider, checked: d.checked, total: d.total } : null
+        );
       },
       finding: (d) => {
-        const label = d?.source ? `${d.provider}:${d.source}` : d?.provider;
-        const conf = d?.confidence ? ` (${d.confidence})` : "";
+        sound.finding(d?.confidence);
         pushToHistory({
-          type: "output",
-          text: `  [${label}] ${d?.title ?? ""}${conf}`,
+          type: "scan",
+          scan: "finding",
+          provider: d?.provider,
+          source: d?.source,
+          title: d?.title ?? "",
+          url: d?.data?.url ?? null,
+          confidence: d?.confidence ?? "low",
         });
       },
       source_error: (d) => {
+        sound.error();
         pushToHistory({
-          type: "error",
-          text: `  [${d?.provider}] ${d?.error ?? "error"}`,
+          type: "scan",
+          scan: "source-error",
+          provider: d?.provider,
+          error: d?.error ?? "error",
         });
       },
       ai_report: (d) => {
-        pushToHistory({
-          type: "output",
-          text: `\n[ANÁLISIS IA]\n${d?.text ?? ""}`,
-        });
+        pushToHistory({ type: "scan", scan: "ai", text: d?.text ?? "" });
       },
       done: (d) => {
+        sound.done();
         const s = d?.summary || {};
         pushToHistory({
-          type: "output",
-          text: `[DONE] ${s.findings ?? 0} hallazgos · ${s.errors ?? 0} errores · ${s.elapsed_ms ?? "?"}ms`,
+          type: "scan",
+          scan: "done",
+          findings: s.findings ?? 0,
+          errors: s.errors ?? 0,
+          elapsed: s.elapsed_ms ?? "?",
         });
         finish();
       },
       error: (err) => {
+        sound.error();
         pushToHistory({
           type: "error",
           text:
@@ -527,6 +674,7 @@ OSINT TERMINAL
     history,
     isProcessing,
     statusText,
+    scanProgress,
     handleCommand,
     cancelActiveStream,
   };
