@@ -44,7 +44,7 @@ backend/  (repo: rinnegan-api)
 │   │   ├── ip/        (ipapi, reverse_dns)
 │   │   ├── phone/     (libphonenumber)
 │   │   ├── name/      (google_cse)
-│   │   └── image/     (exif, reverse_image, face)
+│   │   └── image/     (exif, face)
 │   ├── ai/analyst.py           # OpenAI: correlación + resumen + reporte
 │   └── routes/osint.py         # endpoints por categoría
 ├── tests/                      # pytest + respx
@@ -150,8 +150,9 @@ class Provider:
 | phone | `libphonenumber` | país, operador, tipo, validez | no | `phonenumbers`, local sin red |
 | **name** | `google_cse` | posibles matches (perfiles, páginas) | **Sí: Google CSE** | 100 búsq/día gratis. Con apellido → filtro más estricto |
 | **image** | `exif` | GPS, fecha, dispositivo | no | `Pillow`/`exifread`, local. Alto valor |
-| | `reverse_image` | dónde aparece la imagen + entidades | **Sí: Google Vision** | Web Detection, 1.000/mes gratis |
 | | `face` | detección + encoding facial; correlación 1:1 | no | InsightFace, local, dep pesada |
+
+> Nota (2026-06-20): `reverse_image` (Google Vision Web Detection) fue **descartado** por decisión del usuario. Reverse image queda solo en el roadmap v2 (opción de pago). La categoría `image` en v1 = EXIF + face.
 
 **Reglas:** cada provider falla aislado (→ `source_error`), nunca tumba el escaneo. Testeable solo (pytest + respx). Concurrencia limitada por provider (evita falsos positivos por rate-limit).
 
@@ -193,14 +194,13 @@ class Provider:
 |---|---|---|---|
 | `OPENAI_API_KEY` | OpenAI (IA) | Ya la tiene | de pago (suyo) |
 | `GOOGLE_CSE_ID` + `GOOGLE_CSE_KEY` | Google Custom Search (name) | **Sí, gratis** | 100 búsq/día |
-| `GOOGLE_VISION_API_KEY` | Google Cloud Vision (reverse_image) | **Sí, gratis** | 1.000/mes |
 | `OPENAI_MODEL` | (opcional) | — | default `gpt-4o-mini` |
 
 Providers cuyo key falta → se auto-desactivan y reportan `source_error` "sin credencial", sin romper el escaneo.
 
 ## 12. Stack & Quality (backend)
 
-FastAPI · httpx · pydantic v2 · `dnspython`, `python-whois`, `email-validator`, `maigret`, `phonenumbers`, `Pillow`/`exifread`, `insightface`, `google-api-python-client` / Vision REST · pytest + respx · ruff · uv · Python 3.12 · Dockerfile listo para deploy futuro.
+FastAPI · httpx · pydantic v2 · `dnspython`, `python-whois`, `email-validator`, `maigret`, `phonenumbers`, `Pillow`/`exifread`, `insightface` · pytest + respx · ruff · uv · Python 3.12 · Dockerfile listo para deploy futuro.
 
 ## 13. Roadmap (fuera de v1)
 
@@ -214,4 +214,4 @@ FastAPI · httpx · pydantic v2 · `dnspython`, `python-whois`, `email-validator
 - No hay API gratis real de email→brechas (HIBP de pago).
 - Holehe semi-abandonado: aislado para parchearlo.
 - Búsqueda por nombre es la más débil (people-search); Google CSE + redes da resultados razonables pero no exhaustivos.
-- Reverse image (Google Vision) encuentra la imagen o similares/entidades, no "esta persona en la web".
+- `image` en v1 es EXIF (dato duro) + detección facial local. Reverse image (dónde aparece la foto) quedó descartado en v1 — solo v2 como opción de pago.

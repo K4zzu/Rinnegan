@@ -2,6 +2,8 @@
 
 > Continúa en el MISMO repo `rinnegan-api`. Copia el bloque y pásaselo al agente.
 
+> **Actualización (2026-06-20):** el provider `reverse_image` (Google Vision) fue **descartado** por decisión del usuario. La categoría `image` en v1 = **EXIF + face** únicamente. Ignora las secciones de `reverse_image`/`GOOGLE_VISION_API_KEY` de este prompt. Reverse image pasa al roadmap v2 (opción de pago).
+
 ---
 
 Continúas `rinnegan-api`. Hitos 1–5 hechos (domain/ip, username, email, phone, name). Patrón probado: providers aislados, orquestador multiplexa SSE, `registry.py`, rutas genéricas, auto-desactivación por credencial faltante. **Este es el Hito 6: categoría `image`.** Es el primero cuya entrada es un **archivo** (no un query param): usa **POST multipart** y streaming SSE sobre la respuesta. Mantén el protocolo de eventos y el envelope idénticos; adapta solo el tipo de entrada de los providers de imagen (reciben bytes en vez de string).
