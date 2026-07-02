@@ -1,7 +1,7 @@
 // src/hooks/useTerminal.js
 import { useState, useRef } from "react";
 import { parseCommand } from "../utils/commandParser";
-import { streamOsint } from "../services/api";
+import { streamOsint, streamOsintImage } from "../services/api";
 import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
@@ -131,6 +131,18 @@ export function useTerminal() {
 
     // Comandos OSINT que pegan al backend (streaming SSE)
     if (category === "osint") {
+      // La imagen se sube por archivo: pedimos el selector a Terminal.jsx.
+      if (command === "osint image") {
+        if (context.requestImageUpload) {
+          context.requestImageUpload();
+        } else {
+          pushToHistory({
+            type: "error",
+            text: "Subida de imagen no disponible en esta vista.",
+          });
+        }
+        return;
+      }
       handleOsintCommand(command, args);
       return;
     }
@@ -166,6 +178,7 @@ export function useTerminal() {
         "  osint user <username>    - Lookup de usuario",
         "  osint phone <tel>        - Lookup de teléfono",
         "  osint name <nombre>      - Búsqueda por nombre y apellido",
+        "  osint image              - Analiza una imagen (EXIF, reverse, rostros)",
       ].join("\n"),
     });
   };
@@ -568,26 +581,9 @@ OSINT TERMINAL
     });
   };
 
-  const handleOsintCommand = (command, args) => {
-    const value = (args || []).join(" ").trim();
-    if (!value) {
-      pushToHistory({
-        type: "error",
-        text: `Debes proporcionar un valor. Ejemplo: ${command} <valor>`,
-      });
-      return;
-    }
-
-    const category = CATEGORY_BY_COMMAND[command];
-    if (!category) {
-      pushToHistory({
-        type: "error",
-        text: `Comando OSINT no reconocido: ${command}`,
-      });
-      return;
-    }
-
-    // Cierra cualquier escaneo previo antes de arrancar el nuevo.
+  // Lógica común de escaneo (texto e imagen). `openStream(handlers)` abre el
+  // transporte adecuado (EventSource o fetch/POST) y devuelve { close }.
+  const beginScan = (openStream, { kind, queryFallback }) => {
     closeActiveStream();
     setIsProcessing(true);
     setStatusText("conectando…");
@@ -601,14 +597,14 @@ OSINT TERMINAL
       activeStreamRef.current = null;
     };
 
-    activeStreamRef.current = streamOsint(category, value, {
+    activeStreamRef.current = openStream({
       meta: (d) => {
         sound.scanStart();
         pushToHistory({
           type: "scan",
           scan: "start",
-          kind: d?.type ?? category,
-          query: d?.query ?? value,
+          kind: d?.type ?? kind,
+          query: d?.query ?? queryFallback,
           providers: d?.providers ?? [],
         });
       },
@@ -672,6 +668,49 @@ OSINT TERMINAL
     });
   };
 
+  const handleOsintCommand = (command, args) => {
+    const value = (args || []).join(" ").trim();
+    if (!value) {
+      pushToHistory({
+        type: "error",
+        text: `Debes proporcionar un valor. Ejemplo: ${command} <valor>`,
+      });
+      return;
+    }
+
+    const category = CATEGORY_BY_COMMAND[command];
+    if (!category) {
+      pushToHistory({
+        type: "error",
+        text: `Comando OSINT no reconocido: ${command}`,
+      });
+      return;
+    }
+
+    beginScan((handlers) => streamOsint(category, value, handlers), {
+      kind: category,
+      queryFallback: value,
+    });
+  };
+
+  // Lanzado desde Terminal.jsx cuando el usuario elige una imagen.
+  const MAX_IMAGE_MB = 15;
+  const runImageScan = (file) => {
+    if (!file) return;
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      pushToHistory({
+        type: "error",
+        text: `Imagen demasiado grande (máx. ${MAX_IMAGE_MB} MB).`,
+      });
+      return;
+    }
+    pushToHistory({ type: "input", text: `osint image · ${file.name}` });
+    beginScan((handlers) => streamOsintImage(file, handlers), {
+      kind: "image",
+      queryFallback: file.name,
+    });
+  };
+
   return {
     history,
     isProcessing,
@@ -679,5 +718,6 @@ OSINT TERMINAL
     scanProgress,
     handleCommand,
     cancelActiveStream,
+    runImageScan,
   };
 }

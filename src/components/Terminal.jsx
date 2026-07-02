@@ -86,7 +86,22 @@ export default function Terminal() {
     scanProgress,
     handleCommand,
     cancelActiveStream,
+    runImageScan,
   } = useTerminal();
+
+  const fileInputRef = useRef(null);
+
+  // Abre el selector de archivo (lo pide el comando `osint image`).
+  const requestImageUpload = () => {
+    sound.unlock();
+    fileInputRef.current?.click();
+  };
+
+  const onFileSelected = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite re-elegir el mismo archivo
+    runImageScan(file); // valida y reporta dentro del hook
+  };
   const clientInfo = useClientInfo();
   const systemStats = useSystemStats();
 
@@ -135,6 +150,7 @@ export default function Terminal() {
       themeKey,
       setThemeKey,
       availableThemes: AVAILABLE_THEMES,
+      requestImageUpload,
     });
 
     setCommandHistory((prev) => [...prev, currentInput]);
@@ -241,6 +257,15 @@ export default function Terminal() {
     "
       onClick={handleTerminalClick}
     >
+      {/* Input de archivo oculto para `osint image` */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onFileSelected}
+        className="hidden"
+      />
+
       {/* Header de la ventana + info del usuario + monitor */}
       <div
         className={`flex flex-col gap-1 mb-3 text-xs ${colors.headerText || "text-green-300/70"
