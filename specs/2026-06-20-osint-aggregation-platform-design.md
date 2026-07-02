@@ -43,7 +43,7 @@ backend/  (repo: rinnegan-api)
 │   │   ├── domain/    (rdap, dns, whois, crtsh)
 │   │   ├── ip/        (ipapi, reverse_dns)
 │   │   ├── phone/     (libphonenumber)
-│   │   ├── name/      (google_cse)
+│   │   ├── name/      (duckduckgo)
 │   │   └── image/     (exif, face)
 │   ├── ai/analyst.py           # OpenAI: correlación + resumen + reporte
 │   └── routes/osint.py         # endpoints por categoría
@@ -148,7 +148,7 @@ class Provider:
 | ip | `ipapi` | geo, ISP, ASN | no | ip-api.com (45 req/min) |
 | | `reverse_dns` | hostname(s) | no | stdlib |
 | phone | `libphonenumber` | país, operador, tipo, validez | no | `phonenumbers`, local sin red |
-| **name** | `google_cse` | posibles matches (perfiles, páginas) | **Sí: Google CSE** | 100 búsq/día gratis. Con apellido → filtro más estricto |
+| **name** | `duckduckgo` | posibles matches (perfiles, páginas) | no | DDG HTML scraping. Con apellido → frase exacta. (Google CSE descartado 2026-06-20) |
 | **image** | `exif` | GPS, fecha, dispositivo | no | `Pillow`/`exifread`, local. Alto valor |
 | | `face` | detección + encoding facial; correlación 1:1 | no | InsightFace, local, dep pesada |
 
@@ -193,8 +193,9 @@ class Provider:
 | Variable | Servicio | ¿Crear cuenta? | Tier |
 |---|---|---|---|
 | `OPENAI_API_KEY` | OpenAI (IA) | Ya la tiene | de pago (suyo) |
-| `GOOGLE_CSE_ID` + `GOOGLE_CSE_KEY` | Google Custom Search (name) | **Sí, gratis** | 100 búsq/día |
 | `OPENAI_MODEL` | (opcional) | — | default `gpt-4o-mini` |
+
+> `name` ya NO requiere credenciales: usa DuckDuckGo (scraping). La única cuenta obligatoria de la v1 es **OpenAI** (IA).
 
 Providers cuyo key falta → se auto-desactivan y reportan `source_error` "sin credencial", sin romper el escaneo.
 
@@ -213,5 +214,5 @@ FastAPI · httpx · pydantic v2 · `dnspython`, `python-whois`, `email-validator
 - Listas de sitios (Maigret/Sherlock) se degradan; mantenimiento periódico.
 - No hay API gratis real de email→brechas (HIBP de pago).
 - Holehe semi-abandonado: aislado para parchearlo.
-- Búsqueda por nombre es la más débil (people-search); Google CSE + redes da resultados razonables pero no exhaustivos.
+- Búsqueda por nombre es la más débil (people-search); DuckDuckGo (scraping HTML, sin key) da resultados razonables pero no exhaustivos, y su HTML puede cambiar (mantenimiento ocasional).
 - `image` en v1 es EXIF (dato duro) + detección facial local. Reverse image (dónde aparece la foto) quedó descartado en v1 — solo v2 como opción de pago.

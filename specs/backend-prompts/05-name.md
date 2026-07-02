@@ -1,5 +1,7 @@
 # Prompt para el agente de backend — Hito 5: Name (Google CSE)
 
+> **REEMPLAZADO (2026-06-20):** Google CSE dio problemas de credenciales/proyecto. La categoría `name` se cambió a **DuckDuckGo sin API key** — usa `08-name-duckduckgo.md` en su lugar. Este prompt queda como referencia histórica.
+
 > Continúa en el MISMO repo `rinnegan-api`. Copia el bloque y pásaselo al agente.
 
 ---
