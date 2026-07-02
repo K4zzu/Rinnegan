@@ -164,6 +164,7 @@ export function useTerminal() {
         "  osint domain <dominio>   - Lookup de dominio",
         "  osint email <email>      - Lookup de email",
         "  osint user <username>    - Lookup de usuario",
+        "  osint phone <tel>        - Lookup de teléfono",
       ].join("\n"),
     });
   };
