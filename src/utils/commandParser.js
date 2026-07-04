@@ -1,5 +1,9 @@
 // src/utils/commandParser.js
 
+// Subtipos OSINT explícitos. Si tras "osint" viene uno de estos, es un
+// comando explícito; si no, es el modo AUTO (detección por el backend).
+const OSINT_TYPES = ["ip", "domain", "email", "user", "phone", "name", "image"];
+
 export function parseCommand(input) {
   // Normalizamos el input y lo separamos por espacios
   const trimmed = input.trim();
@@ -46,19 +50,23 @@ export function parseCommand(input) {
     };
   }
 
-  // --- OSINT genéricos que llaman al backend ---
-  // osint ip <valor>
-  // osint domain <valor>
-  // osint email <valor>
-  // osint user <valor>
-  if (first === "osint") {
-    const sub = second || "";
-    const args = rest;
-    const fullCommand = `osint ${sub}`; // ej: "osint ip"
-
+  // --- OSINT explícito: osint <tipo> <valor> ---
+  // osint ip <valor> · osint domain <valor> · osint email <valor> · etc.
+  if (first === "osint" && OSINT_TYPES.includes(second)) {
     return {
-      command: fullCommand,
-      args,
+      command: `osint ${second}`, // ej: "osint ip"
+      args: rest,
+      category: "osint",
+    };
+  }
+
+  // --- OSINT auto: osint <dato> (sin tipo) ---
+  // El backend detecta el tipo y corre todo lo que aplique.
+  // Todo lo que venga después de "osint" es el valor.
+  if (first === "osint") {
+    return {
+      command: "osint auto",
+      args: parts.slice(1), // ej: ["torvalds"] o ["John", "Doe"]
       category: "osint",
     };
   }

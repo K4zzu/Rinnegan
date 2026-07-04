@@ -62,6 +62,7 @@ backend/  (repo: rinnegan-api)
 | Endpoint | Comando terminal |
 |---|---|
 | `GET /whoami` | header / `osint self` |
+| `GET /osint/auto/stream?value=` | `osint <dato>` (sin tipo) |
 | `GET /osint/ip/stream?value=` | `osint ip <ip>` |
 | `GET /osint/domain/stream?value=` | `osint domain <dom>` |
 | `GET /osint/email/stream?value=` | `osint email <email>` |
@@ -76,6 +77,19 @@ backend/  (repo: rinnegan-api)
 | `POST /osint/image/stream` (multipart: `file`) | `osint image` (abre selector de archivo) |
 
 `/whoami` → `{ "ip": "<public ip>", "user_agent": "...", "geo": {country, city, ...} | null }`.
+
+**Modo AUTO** (`osint <dato>` sin tipo): el backend detecta el tipo por la forma del dato y corre las categorías aplicables como **una sola corrida** con **un `ai_report` correlacionado**:
+
+| Dato | Detecta | Corre |
+|---|---|---|
+| `algo@mail.com` | email | email |
+| `8.8.8.8` | IP | ip |
+| `ejemplo.com` | dominio | domain |
+| `+57300…` | teléfono | phone |
+| `John Doe` (con espacio) | nombre | name |
+| `torvalds` (una palabra) | handle | **username + name** |
+
+Los comandos explícitos (`osint ip <x>`, etc.) se mantienen para forzar una categoría. `image` va aparte (POST). El frontend rutea: si tras `osint` viene un tipo conocido → explícito; si no → `/osint/auto`.
 
 Ambos tipos de stream emiten `text/event-stream` con el **mismo protocolo de eventos** (§5). La única diferencia es el transporte (GET+EventSource vs POST+fetch-reader).
 

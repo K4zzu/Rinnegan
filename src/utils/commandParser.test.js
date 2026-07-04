@@ -54,6 +54,28 @@ describe("parseCommand", () => {
     expect(result.category).toBe("osint");
   });
 
+  it("parsea 'osint <dato>' (sin tipo) como modo auto", () => {
+    const result = parseCommand("osint torvalds");
+    expect(result).toEqual({
+      command: "osint auto",
+      args: ["torvalds"],
+      category: "osint",
+    });
+  });
+
+  it("modo auto conserva nombres multi-palabra", () => {
+    const result = parseCommand("osint John Doe");
+    expect(result.command).toBe("osint auto");
+    expect(result.args).toEqual(["John", "Doe"]);
+    expect(result.category).toBe("osint");
+  });
+
+  it("un tipo explícito NO se trata como auto", () => {
+    const result = parseCommand("osint email a@b.com");
+    expect(result.command).toBe("osint email");
+    expect(result.category).toBe("osint");
+  });
+
   it("marca comandos desconocidos como category 'unknown'", () => {
     const result = parseCommand("foobar");
     expect(result.category).toBe("unknown");

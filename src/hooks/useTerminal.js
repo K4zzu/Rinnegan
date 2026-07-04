@@ -6,6 +6,7 @@ import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
 const CATEGORY_BY_COMMAND = {
+  "osint auto": "auto",
   "osint ip": "ip",
   "osint domain": "domain",
   "osint email": "email",
@@ -171,6 +172,8 @@ export function useTerminal() {
         "  netstat                  - Info de red y sistema en texto",
         "  sysinfo                  - Resumen extendido del cliente",
         "  osint self               - JSON con fingerprint del cliente",
+        "",
+        "  osint <dato>             - AUTO: detecta el tipo y busca todo lo que aplique",
         "",
         "  osint ip <ip>            - Lookup de IP",
         "  osint domain <dominio>   - Lookup de dominio",
