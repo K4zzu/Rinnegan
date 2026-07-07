@@ -78,7 +78,7 @@ function BootScreen({ onFinish, theme }) {
   );
 }
 
-export default function Terminal() {
+export default function Terminal({ user, onLogout }) {
   const {
     history,
     isProcessing,
@@ -151,6 +151,7 @@ export default function Terminal() {
       setThemeKey,
       availableThemes: AVAILABLE_THEMES,
       requestImageUpload,
+      onLogout,
     });
 
     setCommandHistory((prev) => [...prev, currentInput]);
@@ -288,7 +289,7 @@ export default function Terminal() {
           className={`flex flex-wrap gap-x-4 gap-y-1 pl-8 text-[0.65rem] md:text-[0.7rem] ${colors.headerSubText || "text-green-400/80"
             }`}
         >
-          <span>user: {clientInfo.username}</span>
+          <span>user: {user?.username || clientInfo.username}</span>
           <span>ip: {clientInfo.ip || "pendiente backend"}</span>
           <span>hora: {clientInfo.timeString}</span>
           <span>tz: {clientInfo.timeZone}</span>

@@ -17,7 +17,7 @@ export function parseCommand(input) {
   // --- Comandos core simples (sin subcomandos especiales) ---
   // help, clear, banner, netstat, sysinfo, about, demo, sound
   if (
-    ["help", "clear", "banner", "netstat", "sysinfo", "about", "demo", "sound"].includes(
+    ["help", "clear", "banner", "netstat", "sysinfo", "about", "demo", "sound", "logout"].includes(
       first
     )
   ) {

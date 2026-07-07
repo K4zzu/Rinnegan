@@ -1,6 +1,9 @@
 // src/App.jsx
+import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Terminal from "./components/Terminal";
+import LoginPanel from "./components/LoginPanel";
+import { getToken, me, logout, setUnauthorizedHandler } from "./services/api";
 
 function Layout({ children }) {
   return (
@@ -12,9 +15,9 @@ function Layout({ children }) {
           h-[88dvh]
           md:h-[90dvh]
           rounded-xl
-          border border-green-500/40 
-          shadow-lg 
-          overflow-hidden 
+          border border-green-500/40
+          shadow-lg
+          overflow-hidden
           relative
         "
       >
@@ -32,11 +35,6 @@ function Layout({ children }) {
   );
 }
 
-
-function TerminalPage() {
-  return <Terminal />;
-}
-
 function NotFoundPage() {
   return (
     <div className="p-4 font-mono text-sm text-red-400">
@@ -46,6 +44,36 @@ function NotFoundPage() {
 }
 
 export default function App() {
+  // undefined = cargando (validando token), null = sin sesión, {} = autenticado.
+  // Sin token, el estado inicial ya es null (evita setState síncrono en el effect).
+  const [user, setUser] = useState(() => (getToken() ? undefined : null));
+
+  useEffect(() => {
+    // Un 401 en cualquier llamada cierra la sesión.
+    setUnauthorizedHandler(() => setUser(null));
+
+    if (getToken()) {
+      me()
+        .then((u) => setUser(u))
+        .catch(() => setUser(null));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+  };
+
+  if (user === undefined) return null; // breve carga inicial
+
+  if (!user) {
+    return (
+      <Layout>
+        <LoginPanel onAuthed={setUser} />
+      </Layout>
+    );
+  }
+
   return (
     <Router basename={import.meta.env.BASE_URL}>
       <Routes>
@@ -53,7 +81,7 @@ export default function App() {
           path="/"
           element={
             <Layout>
-              <TerminalPage />
+              <Terminal user={user} onLogout={handleLogout} />
             </Layout>
           }
         />

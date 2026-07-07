@@ -105,6 +105,12 @@ export function useTerminal() {
       return;
     }
 
+    if (command === "logout") {
+      pushToHistory({ type: "output", text: "[SESIÓN] cerrando sesión…" });
+      context.onLogout?.();
+      return;
+    }
+
     if (command === "demo") {
       handleDemo();
       return;
@@ -166,6 +172,7 @@ export function useTerminal() {
         "  about                    - Información sobre Rinnegan",
         "  demo                     - Escaneo simulado (previsualiza la estética HUD)",
         "  sound [on|off]           - Activa/desactiva los sonidos",
+        "  logout                   - Cierra la sesión",
         "  banner                   - Muestra el banner ASCII del tema actual",
         "  theme list               - Lista temas/proyectos OSINT disponibles",
         "  theme <id>               - Cambia el tema/proyecto activo",
