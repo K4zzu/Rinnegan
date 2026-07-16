@@ -1,0 +1,55 @@
+# Stack de despliegue: Caddy (HTTPS) + n8n + backend Rinnegan.
+# Un solo reverse proxy (Caddy) dueño de 80/443 → sin conflictos de puertos.
+# Sustituye "TUDOMINIO.com" en el Caddyfile. Copia .env.example → .env y rellénalo.
+# Clona el repo del backend en ./rinnegan-api antes de levantar.
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [web]
+    depends_on:
+      - n8n
+      - backend
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=n8n.TUDOMINIO.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://n8n.TUDOMINIO.com/
+      - N8N_SECURE_COOKIE=true
+      - GENERIC_TIMEZONE=America/Bogota
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks: [web]
+    # NO publicamos 5678 al host: solo Caddy lo alcanza por la red interna.
+
+  backend:
+    build: ./rinnegan-api      # repo del backend clonado aquí
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DB_PATH=/app/data/rinnegan.db
+    volumes:
+      - rinnegan_data:/app/data
+    networks: [web]
+    # Tampoco publicamos 8000 al host: solo Caddy lo alcanza.
+
+networks:
+  web:
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:
+  rinnegan_data:
