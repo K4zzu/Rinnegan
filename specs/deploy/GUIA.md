@@ -49,6 +49,8 @@ git clone <URL_DEL_REPO_rinnegan-api> rinnegan-api
 ```
 Copia a `~/deploy/` los archivos `docker-compose.yml`, `Caddyfile` y `.env.example` (renómbralo a `.env`) de `specs/deploy/`. Ya vienen con `whatbrainy.com` puesto.
 
+> ⚠️ **Importante:** el repo `rinnegan-api` trae su PROPIO `docker-compose.yml` y `Caddyfile` (deploy standalone). En esta instancia **NO los uses** — usamos los de `specs/deploy/` (co-hospedan n8n + Rinnegan bajo un solo Caddy). De `rinnegan-api` solo se usa su **Dockerfile** (lo construye `build: ./rinnegan-api`). Si corrieras los dos compose, tendrías dos Caddy peleando por 80/443.
+
 ## 5. Configura el `.env`
 
 Edita `~/deploy/.env`:
