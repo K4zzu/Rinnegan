@@ -1,14 +1,13 @@
 # Caddy rutea por subdominio y saca/renueva HTTPS (Let's Encrypt) solo.
-# Sustituye TUDOMINIO.com y el email antes de levantar.
 
 {
-	email tu-email@ejemplo.com
+	email admin@whatbrainy.com
 }
 
-n8n.TUDOMINIO.com {
+n8n.whatbrainy.com {
 	reverse_proxy n8n:5678
 }
 
-api.TUDOMINIO.com {
+godeye.whatbrainy.com {
 	reverse_proxy backend:8000
 }

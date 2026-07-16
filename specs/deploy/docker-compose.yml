@@ -23,10 +23,10 @@ services:
     image: n8nio/n8n:latest
     restart: unless-stopped
     environment:
-      - N8N_HOST=n8n.TUDOMINIO.com
+      - N8N_HOST=n8n.whatbrainy.com
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://n8n.TUDOMINIO.com/
+      - WEBHOOK_URL=https://n8n.whatbrainy.com/
       - N8N_SECURE_COOKIE=true
       - GENERIC_TIMEZONE=America/Bogota
     volumes:
