@@ -4,23 +4,20 @@ import { useTerminal } from "../hooks/useTerminal";
 import { useClientInfo, useSystemStats } from "../hooks/useClientInfo";
 import PromptLine from "./PromptLine";
 import OutputLine from "./OutputLine";
-import AsciiBanner from "./AsciiBanner";
+import GodEye from "./GodEye";
 import { THEMES, AVAILABLE_THEMES } from "../theme/themes";
 import { sound } from "../utils/sound";
 
-// Líneas de boot (solo texto, el color lo da el tema)
+// Secuencia de arranque de godeye.
 const BOOT_LINES = [
-  "OSINT Terminal v0.1 (qminds)",
-  "[BOOT] Iniciando OSINT Terminal...",
-  "[OK] Verificando entorno cliente...",
-  "[OK] Cargando módulos de interfaz...",
-  "[OK] Inicializando motor de comandos...",
-  "[OK] Inicializando módulos OSINT: ip, domain, email, user...",
-  "[OK] Cargando perfil: default@qminds",
-  "[OK] Configurando canal seguro con backend FastAPI...",
-  "[OK] Comprobando latencia con API...",
-  "[READY] Todos los sistemas en línea.",
-  'Sistema listo. Escribe "help" para ver los comandos.',
+  "godeye // all-source intelligence terminal",
+  "[boot] inicializando núcleo godeye…",
+  "[ok]   enlace seguro establecido (tls)",
+  "[ok]   módulos: usuario · email · dominio · ip · teléfono · nombre · imagen",
+  "[ok]   motor de correlación ia en línea",
+  "[ok]   calibrando el ojo…",
+  "[ready] todos los sensores activos.",
+  'escribe un objetivo (nombre, usuario, email…) o "help".',
 ];
 
 function BootScreen({ onFinish, theme }) {
@@ -32,7 +29,13 @@ function BootScreen({ onFinish, theme }) {
 
   const colors = theme?.colors || {};
   const lineClass = colors.bodyText || "text-green-300/90";
-  const bannerClass = colors.bannerText || "text-green-400/90";
+  const accentText = colors.bannerText || "text-green-400/90";
+
+  // Sonido de encendido, una vez.
+  useEffect(() => {
+    sound.unlock();
+    sound.boot();
+  }, []);
 
   useEffect(() => {
     if (currentLine >= BOOT_LINES.length) {
@@ -55,19 +58,21 @@ function BootScreen({ onFinish, theme }) {
       } else {
         setCurrentChar((prev) => prev + 1);
       }
-    }, 15);
+    }, 16);
 
     return () => clearTimeout(timeout);
   }, [currentLine, currentChar, onFinish]);
 
   return (
-    <div className="h-[calc(100%-2.5rem)] flex flex-col justify-center items-start text-xs md:text-sm">
-      {/* Banner ASCII basado en el tema */}
-      <AsciiBanner
-        className={`mb-4 ${bannerClass}`}
-        banner={theme?.banner}
-      />
-      <div className="space-y-1">
+    <div className="h-[calc(100%-2.5rem)] flex flex-col justify-center items-center text-center text-xs md:text-sm">
+      {/* El ojo se abre */}
+      <div className={`ge-boot h-28 w-28 md:h-36 md:w-36 mb-4 ${accentText}`}>
+        <GodEye state="scanning" />
+      </div>
+      <div className={`phosphor tracking-[0.5em] text-lg md:text-2xl mb-6 ${accentText}`}>
+        GODEYE
+      </div>
+      <div className="space-y-1 text-left w-full max-w-lg">
         {renderedLines.map((text, idx) => (
           <p key={idx} className={lineClass}>
             {text}
@@ -129,6 +134,27 @@ export default function Terminal({ user, onLogout }) {
   const [isBooting, setIsBooting] = useState(true);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Estado del ojo: scanning se deriva de isProcessing; al terminar un
+  // escaneo se dispara un flash "locked" (objetivo fijado) transitorio.
+  const [locked, setLocked] = useState(false);
+  const wasProcessing = useRef(false);
+  useEffect(() => {
+    if (isProcessing) {
+      wasProcessing.current = true;
+      return;
+    }
+    if (!wasProcessing.current) return;
+    wasProcessing.current = false;
+    // En callbacks async (no síncrono en el effect) para no encadenar renders.
+    const on = setTimeout(() => setLocked(true), 0);
+    const off = setTimeout(() => setLocked(false), 1100);
+    return () => {
+      clearTimeout(on);
+      clearTimeout(off);
+    };
+  }, [isProcessing]);
+  const eyeState = isProcessing ? "scanning" : locked ? "locked" : "idle";
 
   // Historial de comandos enviados para navegar con flechas ↑/↓.
   // commandHistory: más antiguo primero. historyIndex: -1 = no navegando.
@@ -272,16 +298,20 @@ export default function Terminal({ user, onLogout }) {
         className={`flex flex-col gap-1 mb-3 text-xs ${colors.headerText || "text-green-300/70"
           }`}
       >
-        {/* Línea de “ventana” con los 3 puntitos */}
+        {/* Barra de ventana: ojo vivo + wordmark GODEYE + tema activo */}
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
             <span className="w-3 h-3 rounded-full bg-red-500/70" />
             <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
             <span className="w-3 h-3 rounded-full bg-green-500/70" />
           </div>
-          <span className="ml-3 truncate">
-            {theme.label || "OSINT Terminal"}: ~
+          <span className={`ml-2 h-5 w-5 shrink-0 ${colors.bannerText || "text-green-400/90"}`}>
+            <GodEye state={eyeState} />
           </span>
+          <span className={`phosphor font-semibold tracking-[0.3em] ${colors.bannerText || "text-green-400/90"}`}>
+            GODEYE
+          </span>
+          <span className="ml-1 truncate opacity-50">· {theme.label}</span>
         </div>
 
         {/* Línea con datos del usuario */}
@@ -333,30 +363,44 @@ export default function Terminal({ user, onLogout }) {
           ref={scrollRef}
           className="h-[calc(100%-2.5rem)] overflow-y-auto space-y-1 pr-2 custom-scrollbar"
         >
+          {history.length === 0 && !isProcessing && (
+            <div className="mt-2 text-[0.7rem] opacity-45 leading-relaxed">
+              <span className={colors.bannerText || "text-green-400/90"}>
+                ▸ el ojo está abierto.
+              </span>{" "}
+              escribe un objetivo y presiona enter — un nombre, usuario, email,
+              teléfono, dominio o IP. `osint image` para una foto. `help` para
+              todo.
+            </div>
+          )}
+
           {history.map((entry, index) => (
             <OutputLine key={index} entry={entry} theme={theme} />
           ))}
 
           {isProcessing && (
-            <div className="mt-1 text-xs">
+            <div className="mt-2 text-xs">
               <div
                 className={`flex items-center gap-2 ${colors.headerMetricsText || "text-green-300"}`}
               >
-                <span className="animate-pulse">▸</span>
-                <span className="animate-pulse">
-                  {statusText || "procesando…"}
+                <span className="h-4 w-4 shrink-0">
+                  <GodEye state="scanning" className={colors.bannerText || ""} />
                 </span>
-                <span className="opacity-40">(Ctrl+C para cancelar)</span>
+                <span className="animate-pulse">
+                  {statusText || "rastreando…"}
+                </span>
+                <span className="opacity-40">· ctrl+c para abortar</span>
               </div>
               {scanProgress?.total ? (
-                <div className="mt-1 h-1 w-full max-w-md overflow-hidden rounded-sm bg-white/5">
+                <div className="mt-1.5 h-[3px] w-full max-w-md overflow-hidden rounded-full bg-white/5">
                   <div
-                    className={`h-full transition-[width] duration-200 ease-out ${colors.netBar || "bg-green-500/80"}`}
+                    className={`h-full rounded-full transition-[width] duration-200 ease-out ${colors.netBar || "bg-green-500/80"}`}
                     style={{
                       width: `${Math.min(
                         100,
                         Math.round((scanProgress.checked / scanProgress.total) * 100)
                       )}%`,
+                      boxShadow: "0 0 6px currentColor",
                     }}
                   />
                 </div>

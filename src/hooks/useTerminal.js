@@ -675,6 +675,7 @@ OSINT TERMINAL
         pushToHistory({ type: "scan", scan: "media", items: d.items });
       },
       ai_report: (d) => {
+        sound.lock(); // objetivo fijado: identidad resuelta
         pushToHistory({ type: "scan", scan: "ai", text: d?.text ?? "" });
       },
       done: (d) => {

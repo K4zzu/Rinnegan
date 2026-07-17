@@ -19,11 +19,36 @@ body,
   padding: 0;
 }
 
-/* Fondo base oscuro por si algo se sale del layout */
+/* Fondo base: negro con tinte violeta (fósforo/CRT). */
 body {
-  background-color: #020617; /* bg-slate-950 */
-  color: #bbf7d0; /* text-green-200 aprox */
+  background-color: #08060d;
+  color: #bbf7d0;
   overflow-x: hidden; /* evita scroll horizontal en móvil */
+}
+
+/* ── Atmósfera CRT global (viñeta + grano), sin interceptar clics ─────────── */
+body::before {
+  /* viñeta */
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+body::after {
+  /* grano de fósforo muy sutil */
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Scrollbar estilo terminal para contenedores con la clase custom-scrollbar */
@@ -133,12 +158,184 @@ body {
   animation: hud-flicker 0.5s ease-in-out 1;
 }
 
-/* Respeta prefers-reduced-motion: sin animaciones de movimiento. */
+/* ── GodEye — el ojo/sensor Rinnegan ───────────────────────────────────── */
+.godeye {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: #a855f7; /* acento violeta por defecto; se puede sobreescribir */
+  filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+}
+.godeye [class^="ge-"] {
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+}
+.godeye circle,
+.godeye line,
+.godeye path {
+  stroke: currentColor;
+  stroke-width: 1.1;
+}
+.ge-halo {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.06;
+}
+.ge-ring-1 {
+  opacity: 0.45;
+  animation: ge-spin 22s linear infinite;
+}
+.ge-ring-2 {
+  opacity: 0.7;
+  stroke-width: 1.2;
+  animation: ge-spin 14s linear infinite reverse;
+}
+.ge-ring-3 {
+  opacity: 0.85;
+  stroke-width: 1.4;
+}
+.ge-tomoe {
+  animation: ge-spin 9s linear infinite;
+}
+.ge-tomoe circle {
+  fill: currentColor;
+  stroke: none;
+}
+.ge-iris {
+  fill: currentColor;
+  opacity: 0.08;
+  stroke-width: 1;
+}
+.ge-pupil {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.9;
+  animation: ge-breathe 4s ease-in-out infinite;
+}
+.ge-core {
+  fill: #f0abfc;
+  stroke: none;
+}
+.ge-sweep {
+  opacity: 0;
+}
+.ge-sweep line {
+  stroke: #e879f9;
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 4px rgba(232, 121, 249, 0.8));
+}
+.ge-reticle {
+  opacity: 0;
+  color: #e879f9;
+}
+.ge-reticle path {
+  stroke: #e879f9;
+  stroke-width: 2;
+  fill: none;
+}
+
+@keyframes ge-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ge-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+@keyframes ge-sweep-rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ge-open {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes ge-lock-flash {
+  0% {
+    filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+  }
+  30% {
+    filter: drop-shadow(0 0 14px rgba(232, 121, 249, 1));
+  }
+  100% {
+    filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+  }
+}
+
+/* Estado: escaneando → enfoca la pupila y activa el barrido de radar. */
+.godeye[data-state="scanning"] .ge-pupil {
+  animation: none;
+  transform: scale(0.62);
+  opacity: 1;
+}
+.godeye[data-state="scanning"] .ge-sweep {
+  opacity: 0.9;
+  animation: ge-sweep-rot 1.3s linear infinite;
+}
+.godeye[data-state="scanning"] .ge-ring-1 {
+  animation-duration: 8s;
+  opacity: 0.7;
+}
+.godeye[data-state="scanning"] {
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.75));
+}
+
+/* Estado: objetivo fijado → aparece el retículo y destella. */
+.godeye[data-state="locked"] .ge-reticle {
+  opacity: 1;
+  animation: ge-open 0.4s ease-out both;
+}
+.godeye[data-state="locked"] {
+  animation: ge-lock-flash 0.7s ease-out;
+}
+
+/* El ojo grande del boot se "abre". */
+.ge-boot {
+  animation: ge-open 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Texto con glow de fósforo (para el wordmark GODEYE). */
+.phosphor {
+  text-shadow: 0 0 8px currentColor, 0 0 2px currentColor;
+}
+
+/* Marco de "objetivo fijado" para la sección ¿Quién es?. */
+.lock-frame {
+  position: relative;
+  animation: hud-flicker 0.5s ease-in-out 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .finding-in,
   .hud-sweep,
   .ai-reveal,
-  .scan-done {
+  .scan-done,
+  .lock-frame,
+  .ge-ring-1,
+  .ge-ring-2,
+  .ge-tomoe,
+  .ge-pupil,
+  .ge-sweep,
+  .ge-boot,
+  .godeye[data-state="locked"] {
     animation: none !important;
   }
 }

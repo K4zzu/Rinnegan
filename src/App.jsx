@@ -7,7 +7,7 @@ import { getToken, me, logout, setUnauthorizedHandler } from "./services/api";
 
 function Layout({ children }) {
   return (
-    <div className="min-h-dvh bg-slate-950 text-green-400 flex items-center justify-center px-2 py-3 sm:px-4 sm:py-4 md:px-6">
+    <div className="min-h-dvh bg-[#08060d] text-violet-300 flex items-center justify-center px-2 py-3 sm:px-4 sm:py-4 md:px-6">
       <div
         className="
           w-full
@@ -15,16 +15,16 @@ function Layout({ children }) {
           h-[88dvh]
           md:h-[90dvh]
           rounded-xl
-          border border-green-500/40
-          shadow-lg
+          border border-violet-500/30
+          shadow-[0_0_60px_rgba(139,92,246,0.12)]
           overflow-hidden
           relative
         "
       >
         {/* Efecto scanlines */}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.35)_50%)] bg-[length:100%_4px] opacity-40 mix-blend-soft-light" />
-        {/* Glow verde suave */}
-        <div className="pointer-events-none absolute inset-0 bg-green-500/10 blur-3xl" />
+        {/* Glow violeta suave */}
+        <div className="pointer-events-none absolute inset-0 bg-violet-500/[0.07] blur-3xl" />
 
         {/* Contenido real */}
         <div className="relative z-10 h-full">
