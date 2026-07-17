@@ -5,6 +5,7 @@ import { useClientInfo, useSystemStats } from "../hooks/useClientInfo";
 import PromptLine from "./PromptLine";
 import OutputLine from "./OutputLine";
 import GodEye from "./GodEye";
+import AsciiBanner from "./AsciiBanner";
 import { THEMES, AVAILABLE_THEMES } from "../theme/themes";
 import { sound } from "../utils/sound";
 
@@ -64,15 +65,10 @@ function BootScreen({ onFinish, theme }) {
   }, [currentLine, currentChar, onFinish]);
 
   return (
-    <div className="h-[calc(100%-2.5rem)] flex flex-col justify-center items-center text-center text-xs md:text-sm">
-      {/* El ojo se abre */}
-      <div className={`ge-boot h-28 w-28 md:h-36 md:w-36 mb-4 ${accentText}`}>
-        <GodEye state="scanning" />
-      </div>
-      <div className={`phosphor tracking-[0.5em] text-lg md:text-2xl mb-6 ${accentText}`}>
-        GODEYE
-      </div>
-      <div className="space-y-1 text-left w-full max-w-lg">
+    <div className="h-[calc(100%-2.5rem)] flex flex-col justify-center items-start text-xs md:text-sm">
+      {/* Banner ASCII del tema — el alma de terminal del boot loader */}
+      <AsciiBanner className={`phosphor mb-4 ${accentText}`} banner={theme?.banner} />
+      <div className="space-y-1">
         {renderedLines.map((text, idx) => (
           <p key={idx} className={lineClass}>
             {text}
