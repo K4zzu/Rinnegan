@@ -125,6 +125,11 @@ export function whoami() {
   return request("/whoami");
 }
 
+// Calcula una ruta con ETA + tráfico. `text` es lenguaje natural o coords.
+export function planRoute(text) {
+  return request("/route", { method: "POST", json: { text } });
+}
+
 // Eventos del protocolo SSE (ver spec: sección "SSE Event Protocol").
 const SSE_EVENTS = [
   "meta",

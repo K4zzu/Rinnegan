@@ -317,6 +317,41 @@ body::after {
   text-shadow: 0 0 8px currentColor, 0 0 2px currentColor;
 }
 
+/* ── Marcadores del mapa de ruta ───────────────────────────────────────── */
+.route-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+.route-marker--origin {
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+}
+.route-marker--dest {
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: 2px solid #e879f9;
+  box-shadow: 0 0 8px #e879f9;
+}
+.route-marker--est {
+  background: #e879f9;
+  box-shadow: 0 0 10px #e879f9;
+  animation: est-pulse 1.4s ease-in-out infinite;
+}
+@keyframes est-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.6;
+  }
+}
+
 /* Marco de "objetivo fijado" para la sección ¿Quién es?. */
 .lock-frame {
   position: relative;
@@ -335,7 +370,8 @@ body::after {
   .ge-pupil,
   .ge-sweep,
   .ge-boot,
-  .godeye[data-state="locked"] {
+  .godeye[data-state="locked"],
+  .route-marker--est {
     animation: none !important;
   }
 }

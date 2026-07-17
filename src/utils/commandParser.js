@@ -28,6 +28,15 @@ export function parseCommand(input) {
     };
   }
 
+  // --- Comando ruta / route (texto libre: coords o lenguaje natural) ---
+  if (first === "ruta" || first === "route") {
+    return {
+      command: "ruta",
+      args: parts.slice(1),
+      category: "core",
+    };
+  }
+
   // --- Comando theme ---
   // theme list
   // theme <id>

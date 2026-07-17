@@ -1,7 +1,7 @@
 // src/hooks/useTerminal.js
 import { useState, useRef } from "react";
 import { parseCommand } from "../utils/commandParser";
-import { streamOsint, streamOsintImage } from "../services/api";
+import { streamOsint, streamOsintImage, planRoute } from "../services/api";
 import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
@@ -111,6 +111,11 @@ export function useTerminal() {
       return;
     }
 
+    if (command === "ruta") {
+      await handleRoute(args);
+      return;
+    }
+
     if (command === "demo") {
       handleDemo();
       return;
@@ -189,8 +194,37 @@ export function useTerminal() {
         "  osint phone <tel>        - Lookup de teléfono",
         "  osint name <nombre>      - Búsqueda por nombre y apellido",
         "  osint image              - Analiza una imagen (EXIF + rostros)",
+        "",
+        "  ruta <texto>             - Ruta + ETA con tráfico y tracker (voz 🎤 soportada)",
       ].join("\n"),
     });
+  };
+
+  const handleRoute = async (args = []) => {
+    const text = (args || []).join(" ").trim();
+    if (!text) {
+      pushToHistory({
+        type: "error",
+        text:
+          'Uso: ruta <texto>. Ej: ruta "sale en 4 min desde 4.65,-74.05, ' +
+          'nos vemos en 4.67,-74.06, va en moto" — o: ruta 4.65,-74.05 -> 4.67,-74.06 auto',
+      });
+      return;
+    }
+    sound.unlock();
+    sound.scanStart();
+    pushToHistory({ type: "output", text: "[ruta] calculando ruta con tráfico…" });
+    try {
+      const data = await planRoute(text);
+      sound.lock();
+      pushToHistory({ type: "route", data });
+    } catch (err) {
+      sound.error();
+      pushToHistory({
+        type: "error",
+        text: "Error al calcular la ruta: " + (err?.message || "desconocido"),
+      });
+    }
   };
 
   const handleSound = (args = []) => {
