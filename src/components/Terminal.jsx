@@ -11,8 +11,8 @@ import { sound } from "../utils/sound";
 
 // Secuencia de arranque de godeye.
 const BOOT_LINES = [
-  "godeye // all-source intelligence terminal",
-  "[boot] inicializando núcleo godeye…",
+  "rinnegan // all-source intelligence terminal",
+  "[boot] inicializando núcleo rinnegan…",
   "[ok]   enlace seguro establecido (tls)",
   "[ok]   módulos: usuario · email · dominio · ip · teléfono · nombre · imagen",
   "[ok]   motor de correlación ia en línea",
@@ -305,7 +305,7 @@ export default function Terminal({ user, onLogout }) {
             <GodEye state={eyeState} />
           </span>
           <span className={`phosphor font-semibold tracking-[0.3em] ${colors.bannerText || "text-green-400/90"}`}>
-            GODEYE
+            RINNEGAN
           </span>
           <span className="ml-1 truncate opacity-50">· {theme.label}</span>
         </div>

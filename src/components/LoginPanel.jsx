@@ -1,7 +1,7 @@
 // src/components/LoginPanel.jsx
 import { useState } from "react";
 import { login, register, me } from "../services/api";
-import GodEye from "./GodEye";
+import AsciiBanner from "./AsciiBanner";
 import { sound } from "../utils/sound";
 
 export default function LoginPanel({ onAuthed }) {
@@ -49,13 +49,11 @@ export default function LoginPanel({ onAuthed }) {
     "mb-1 block text-[0.65rem] text-violet-300/60 uppercase tracking-[0.2em]";
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center p-4 font-mono text-violet-200">
-      {/* El ojo */}
-      <div className="ge-boot h-20 w-20 mb-3 text-violet-400">
-        <GodEye state="scanning" />
-      </div>
+    <div className="h-full w-full flex flex-col items-center justify-center overflow-y-auto p-4 font-mono text-violet-200">
+      {/* Arte ASCII del ojo Rinnegan, con el efecto de desencriptado */}
+      <AsciiBanner className="phosphor text-violet-400/90 mb-1" />
       <div className="phosphor text-violet-300 tracking-[0.5em] text-xl mb-1">
-        GODEYE
+        RINNEGAN
       </div>
       <p className="text-[0.65rem] text-violet-300/40 tracking-widest uppercase mb-5">
         all-source intelligence
