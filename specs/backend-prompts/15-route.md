@@ -1,39 +1,45 @@
-# Prompt para el agente de backend — v2: endpoint /route (ruta + ETA con tráfico)
+# Prompt para el agente de backend — v2: endpoint /route (ruta + ETA con tráfico, TomTom)
 
 > Continúa en el MISMO repo `rinnegan-api`. Copia el bloque y pásaselo al agente.
 
 ---
 
-Añade un endpoint `POST /route` que, dado un texto libre (o coordenadas), calcula una ruta con **ETA y tráfico actual** vía **Mapbox Directions**, extrayendo los parámetros del texto con **OpenAI**. No cambies la lógica OSINT ni el protocolo de eventos; es un endpoint nuevo, protegido con la auth existente.
+Añade un endpoint `POST /route` que, dado un texto libre (o coordenadas), calcula una ruta con **ETA y tráfico actual** vía **TomTom Routing API**, extrayendo los parámetros del texto con **OpenAI**. No cambies la lógica OSINT ni el protocolo de eventos; es un endpoint nuevo, protegido con la auth existente.
 
 ## Config
 
-- `MAPBOX_TOKEN` (env, obligatorio para este endpoint). Sin él → responde error claro (503 `{"detail":"route: falta MAPBOX_TOKEN"}`).
-- Reusa `OPENAI_API_KEY` / `OPENAI_MODEL` ya existentes.
+- `TOMTOM_API_KEY` (env, obligatorio para este endpoint). Sin él → 503 `{"detail":"route: falta TOMTOM_API_KEY"}`.
+- Reusa `OPENAI_API_KEY` / `OPENAI_MODEL`.
 
 ## Endpoint
 
 `POST /route` — **protegido** (misma dependencia de auth; 401 sin token). Body, uno de:
 - `{ "text": "<frase libre>" }` — ej: "mi amigo sale en 4 min desde 4.651,-74.056, nos vemos en 4.667,-74.062, va en moto".
-- `{ "origin": {"lat":..,"lng":..}, "dest": {"lat":..,"lng":..}, "mode": "car|moto|bike|walk", "depart_in_min": 4 }` — ya estructurado (salta OpenAI).
+- `{ "origin": {"lat":..,"lng":..}, "dest": {"lat":..,"lng":..}, "mode": "car|moto|bike|walk", "depart_in_min": 4 }`.
 
 ### Flujo
 
-1. Si viene `text`: **OpenAI** extrae `{ origin{lat,lng}, dest{lat,lng}, mode, depart_in_min }`. Instruye al modelo: devolver JSON estricto; aceptar coords "lat,lng", links de Google Maps (extraer coords), y frases en español; `mode` por defecto `"car"`, `depart_in_min` por defecto `0`. Si no logra coords válidas → 422 `{"detail":"no pude entender las coordenadas de origen/destino"}`.
+1. Si viene `text`: **OpenAI** extrae `{ origin{lat,lng}, dest{lat,lng}, mode, depart_in_min }`. Instrucciones: JSON estricto; aceptar "lat,lng", links de Google Maps (extraer coords), frases en español; `mode` default `"car"`, `depart_in_min` default `0`. Sin coords válidas → 422 `{"detail":"no pude entender las coordenadas de origen/destino"}`.
 2. Valida coords (lat ∈ [-90,90], lng ∈ [-180,180]).
-3. Mapea modo → perfil Mapbox: `car`/`moto` → `driving-traffic`; `bike` → `cycling`; `walk` → `walking`.
-4. Llama **Mapbox Directions**:
-   `GET https://api.mapbox.com/directions/v5/mapbox/{profile}/{oLng},{oLat};{dLng},{dLat}?access_token={MAPBOX_TOKEN}&geometries=geojson&overview=full&steps=true&annotations=congestion,duration,distance`
-   (driving-traffic ya usa el tráfico actual). Sin ruta → 404; error HTTP de Mapbox → 502, con detalle.
-5. Deriva `traffic_level` de la relación `duration_traffic` vs `duration_typical` (o de `congestion`): `low` (<1.15x), `moderate` (1.15–1.4x), `heavy` (>1.4x). Si el perfil no da "typical" (no-driving), usa `low`.
+3. Mapea modo → `travelMode` de TomTom: `car`→`car`, `moto`→`motorcycle`, `bike`→`bicycle`, `walk`→`pedestrian`.
+4. Llama **TomTom Calculate Route** (tráfico en vivo):
+   `GET https://api.tomtom.com/routing/1/calculateRoute/{oLat},{oLng}:{dLat},{dLng}/json?key={TOMTOM_API_KEY}&travelMode={travelMode}&traffic=true&routeType=fastest&computeTravelTimeFor=all`
+   - Sin ruta → 404; error HTTP de TomTom → 502, con detalle.
+5. De la respuesta (`routes[0]`):
+   - `summary.lengthInMeters` → `distance_m`.
+   - `summary.travelTimeInSeconds` (con tráfico) → `duration_traffic_s`.
+   - `summary.noTrafficTravelTimeInSeconds` → `duration_typical_s` (si falta, usa el de tráfico).
+   - `summary.trafficDelayInSeconds` → para `traffic_level`.
+   - **Geometría:** concatena `legs[].points` (cada punto `{latitude, longitude}`) → GeoJSON `LineString` con coords `[lng, lat]`.
+6. `traffic_level` desde el ratio tráfico/normal (o el delay): `low` (<1.15x o delay pequeño), `moderate` (1.15–1.4x), `heavy` (>1.4x).
 
-### Respuesta (contrato exacto que consume el frontend)
+### Respuesta (contrato exacto — NO cambia respecto al diseño; solo cambió el proveedor)
 
 ```json
 {
   "origin": { "lat": 4.651, "lng": -74.056 },
   "dest":   { "lat": 4.667, "lng": -74.062 },
-  "mode": "driving-traffic",
+  "mode": "motorcycle",
   "mode_label": "moto",
   "depart_in_min": 4,
   "requested_at": "ISO8601",
@@ -43,32 +49,32 @@ Añade un endpoint `POST /route` que, dado un texto libre (o coordenadas), calcu
   "eta_iso": "ISO8601",
   "traffic_level": "moderate",
   "geometry": { "type": "LineString", "coordinates": [[lng,lat], ...] },
-  "steps": [ { "instruction": "Gira a la derecha…", "distance_m": 120, "duration_s": 30 } ]
+  "steps": []
 }
 ```
 
-- `mode_label`: el modo que pidió el usuario en palabras (car/moto/bike/walk), para el HUD.
+- `mode` = el `travelMode` de TomTom; `mode_label` = el que pidió el usuario (car/moto/bike/walk).
 - `eta_iso` = `requested_at + depart_in_min*60 + duration_traffic_s`.
-- `duration_typical_s`: la duración sin tráfico si Mapbox la da (`duration` base); si no, igual a la de tráfico.
-- `geometry`: la LineString completa (`overview=full`).
+- `geometry` en formato **GeoJSON LineString** `[lng,lat]` (el frontend lo dibuja directo con MapLibre).
+- `steps`: opcional (TomTom puede dar guidance con `instructionsType=text`); puede ir `[]`.
 
 ## Tests (pytest)
 
-- OpenAI **mockeado**: una frase de ejemplo → params esperados; frase sin coords → 422.
-- Mapbox **mockeado** (respx) con una respuesta de ejemplo (geometry + durations + congestion) → contrato correcto (distance/duration/eta/traffic_level/geometry).
-- Body estructurado (sin `text`) → no llama a OpenAI, sí a Mapbox.
-- Coords fuera de rango → 422. Sin `MAPBOX_TOKEN` → 503. Sin token de auth → 401.
+- OpenAI **mockeado**: frase → params; frase sin coords → 422.
+- TomTom **mockeado** (respx) con una respuesta de ejemplo (summary + legs.points) → contrato correcto (distance/duration/geometry en [lng,lat]/traffic_level/eta).
+- Body estructurado (sin `text`) → no llama a OpenAI, sí a TomTom.
+- Coords fuera de rango → 422. Sin `TOMTOM_API_KEY` → 503. Sin auth → 401.
 - `ruff` limpio.
 
 ## Criterios de aceptación
 
-1. `POST /route {text}` con auth → contrato completo con geometry, ETA y traffic_level.
-2. `POST /route {origin,dest,mode,depart_in_min}` funciona sin OpenAI.
-3. Errores claros: 422 (coords), 404 (sin ruta), 502 (Mapbox), 503 (sin token), 401 (sin auth).
-4. Tests verdes (OpenAI+Mapbox mockeados) + `ruff` + README (endpoint, `MAPBOX_TOKEN`, cómo obtenerlo gratis).
+1. `POST /route {text}` con auth → contrato completo con geometry (GeoJSON [lng,lat]), ETA y traffic_level.
+2. `POST /route {origin,dest,mode,depart_in_min}` funciona sin OpenAI. `moto` → `travelMode=motorcycle`.
+3. Errores claros: 422 (coords), 404 (sin ruta), 502 (TomTom), 503 (sin key), 401 (sin auth).
+4. Tests verdes (OpenAI+TomTom mockeados) + `ruff` + README (endpoint, `TOMTOM_API_KEY`, cómo obtenerlo gratis en developer.tomtom.com).
 
 ## NO hagas
 
-- No expongas `MAPBOX_TOKEN` en respuestas. No cambies el protocolo SSE/envelope de OSINT. No hagas streaming aquí (respuesta JSON única). No añadas rastreo real de personas (el tracker vive en el frontend como estimación).
+- No expongas `TOMTOM_API_KEY` en respuestas. No cambies el protocolo SSE/envelope de OSINT. No streaming aquí (JSON único). El "tracking" real vive en el frontend como estimación.
 
 Cuando termines: `curl` de `POST /route` con una frase y con body estructurado, y `pytest`/`ruff`.

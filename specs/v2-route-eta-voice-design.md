@@ -1,7 +1,7 @@
 # Rinnegan v2 — Ruta + ETA con tráfico + tracker estimado + voz — Design / Contract
 
 **Status:** Approved design. Contract for backend (`rinnegan-api`) + frontend (this repo).
-**Scope:** un comando `ruta` que, dado un texto libre (o coordenadas), calcula ruta y ETA **con tráfico** (Mapbox), muestra un **mapa estética terminal** (MapLibre) con la trayectoria y un **marcador de posición estimada** que avanza en tiempo real; más un **botón de voz** para dictar comandos.
+**Scope:** un comando `ruta` que, dado un texto libre (o coordenadas), calcula ruta y ETA **con tráfico** (TomTom), muestra un **mapa estética terminal** (MapLibre) con la trayectoria y un **marcador de posición estimada** que avanza en tiempo real; más un **botón de voz** para dictar comandos.
 
 ---
 
@@ -18,7 +18,7 @@ Poder decir/escribir "mi amigo sale en 4 min desde \<coords\>, nos vemos en \<co
   - Directo: `ruta 4.651,-74.056 -> 4.667,-74.062 moto`.
   - Links de Google Maps pegados (se extraen las coordenadas).
 - El **backend usa OpenAI** para extraer del texto: `{ origin{lat,lng}, dest{lat,lng}, mode, depart_in_min }`.
-  - `mode` por defecto **"car"**. Mapeo a perfiles Mapbox: `car`/`moto` → `driving-traffic`; `bike` → `cycling`; `walk` → `walking`. (Moto ≈ auto en Mapbox; se aclara en el HUD.)
+  - `mode` por defecto **"car"**. Mapeo a travelMode de TomTom: `car`→`car`, `moto`→`motorcycle`, `bike`→`bicycle`, `walk`→`pedestrian`. (TomTom tiene modo moto nativo.)
   - `depart_in_min` por defecto 0.
   - Si OpenAI no logra extraer coords válidas → error claro ("no pude entender las coordenadas de origen/destino").
 
@@ -26,13 +26,13 @@ Poder decir/escribir "mi amigo sale en 4 min desde \<coords\>, nos vemos en \<co
 
 `POST /route` (protegido con auth, como el resto). Body: `{ "text": "<frase>" }` **o** `{ origin, dest, mode, depart_in_min }` ya estructurado (salta OpenAI).
 
-Flujo: (1) si viene `text`, OpenAI extrae params; (2) valida coords; (3) llama **Mapbox Directions** perfil según modo, con `geometries=geojson`, `overview=full`, `annotations=congestion,duration,distance`, tráfico en vivo (driving-traffic); (4) responde el contrato:
+Flujo: (1) si viene `text`, OpenAI extrae params; (2) valida coords; (3) llama **TomTom Calculate Route** (`traffic=true`, `computeTravelTimeFor=all`) según travelMode; (4) responde el contrato:
 
 ```json
 {
   "origin": { "lat": 4.651, "lng": -74.056 },
   "dest":   { "lat": 4.667, "lng": -74.062 },
-  "mode": "driving-traffic",
+  "mode": "motorcycle",
   "mode_label": "moto",
   "depart_in_min": 4,
   "requested_at": "ISO8601",
@@ -47,8 +47,8 @@ Flujo: (1) si viene `text`, OpenAI extrae params; (2) valida coords; (3) llama *
 ```
 
 - `traffic_level`: derivado de `duration_traffic` vs `duration_typical` (o de las anotaciones `congestion`).
-- Errores: coords inválidas → 422 con detalle; Mapbox falla/sin ruta → 502/404 con detalle; sin `MAPBOX_TOKEN` → error de credencial claro.
-- Config: `MAPBOX_TOKEN` (env). Reusa `OPENAI_API_KEY`.
+- Errores: coords inválidas → 422 con detalle; TomTom falla/sin ruta → 502/404 con detalle; sin `TOMTOM_API_KEY` → error de credencial claro.
+- Config: `TOMTOM_API_KEY` (env). Reusa `OPENAI_API_KEY`.
 
 ## 4. Frontend — mapa estética terminal + tracker
 
@@ -75,25 +75,25 @@ Flujo: (1) si viene `text`, OpenAI extrae params; (2) valida coords; (3) llama *
 
 | Servicio | Dónde | Cuenta |
 |---|---|---|
-| **Mapbox Directions** (routing+tráfico) | backend `.env` `MAPBOX_TOKEN` | **Sí, gratis** (100k/mes) |
+| **TomTom Routing** (routing+tráfico) | backend `.env` `TOMTOM_API_KEY` | **Sí, gratis** (~2,500/día, sin tarjeta) |
 | OpenAI (extracción NL) | backend (ya está) | ya la tiene |
 | Tiles del mapa (OpenFreeMap) | frontend | no |
 | Voz (Web Speech API) | frontend | no |
 
 ## 7. Testing
 
-- **Backend:** parseo NL con OpenAI **mockeado** (frase → params); Mapbox **mockeado** (respx) → contrato correcto (distance/duration/geometry/traffic_level); coords inválidas → 422; sin `MAPBOX_TOKEN` → error claro; auth exigido (401 sin token).
+- **Backend:** parseo NL con OpenAI **mockeado** (frase → params); TomTom **mockeado** (respx) → contrato correcto (distance/duration/geometry/traffic_level); coords inválidas → 422; sin `TOMTOM_API_KEY` → error claro; auth exigido (401 sin token).
 - **Frontend:** el comando `ruta` llama a `planRoute` y empuja la entrada `route`; cálculo de la posición estimada (`frac` por tiempo) con tiempos simulados; botón de voz con `SpeechRecognition` **mockeado** (transcript → input); navegador sin soporte → botón ausente.
 
 ## 8. Limitaciones honestas
 
 - **Tracker = estimación**, no GPS real de la persona.
-- Tráfico y ETA son de Mapbox (buenos, no perfectos). "Moto" se rutea como auto.
+- Tráfico y ETA son de TomTom (buenos, no perfectos). "Moto" usa el modo motorcycle nativo.
 - Web Speech API: solo Chrome/Edge/Chrome-Android; el audio pasa por el servicio del navegador.
 - El mapa depende de tiles de OpenFreeMap (servicio externo gratuito).
 
 ## 9. Orden de implementación
 
-1. **Backend `/route`** (OpenAI extract + Mapbox + contrato + tests). Prompt para el agente.
+1. **Backend `/route`** (OpenAI extract + TomTom + contrato + tests). Prompt para el agente.
 2. **Frontend**: `planRoute` + comando `ruta` + `RouteMap` (MapLibre) + tracker.
 3. **Frontend**: botón de voz (Web Speech API).
