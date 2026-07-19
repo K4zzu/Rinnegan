@@ -1,4 +1,5 @@
 // src/components/PromptLine.jsx
+import { useState } from "react";
 import Cursor from "./Cursor";
 import { useVoice } from "../hooks/useVoice";
 import { sound } from "../utils/sound";
@@ -13,6 +14,10 @@ export default function PromptLine({ value, onChange, onKeyDown, inputRef, theme
   const typingClass =
     colors.commandInput || colors.commandHistory || "text-green-400";
 
+  // Posición del caret (para dibujar el bloque donde está el cursor real).
+  const [caret, setCaret] = useState(0);
+  const syncCaret = (e) => setCaret(e.target.selectionStart ?? value.length);
+
   // Voz → escribe la transcripción en el input (revisar y dar Enter).
   const { supported, listening, toggle } = useVoice({ onResult: onChange });
 
@@ -24,24 +29,35 @@ export default function PromptLine({ value, onChange, onKeyDown, inputRef, theme
     inputRef?.current?.focus();
   };
 
+  const pos = Math.min(caret, value.length);
+  const before = value.slice(0, pos);
+  const after = value.slice(pos);
+
   return (
     <div className="flex items-center text-xs md:text-sm">
       <span className={`${prefixClass} mr-2 select-none`}>
         {theme?.id || "qminds"}@osint:~$
       </span>
 
-      <div className="flex-1 relative">
-        {/* Texto visible + cursor */}
-        <span className={typingClass}>{value}</span>
+      <div className="flex-1 relative whitespace-pre-wrap break-words">
+        {/* Texto visible con el bloque de cursor EN la posición del caret */}
+        <span className={typingClass}>{before}</span>
         <Cursor />
+        <span className={typingClass}>{after}</span>
 
         {/* Input invisible que captura el teclado */}
         <input
           ref={inputRef}
           autoFocus
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setCaret(e.target.selectionStart ?? e.target.value.length);
+          }}
           onKeyDown={onKeyDown}
+          onKeyUp={syncCaret}
+          onClick={syncCaret}
+          onSelect={syncCaret}
           className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-transparent outline-none border-none"
           autoComplete="off"
           autoCorrect="off"
