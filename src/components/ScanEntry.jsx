@@ -3,6 +3,7 @@
 // glifo codifican la "confianza" del hallazgo para que se distingan de un
 // vistazo (verde=alta, ámbar=media, gris=baja, rojo=error).
 import Markdown from "./Markdown";
+import MediaGallery from "./MediaGallery";
 import { platformIcon } from "../utils/platformIcon";
 
 const CONFIDENCE = {
@@ -109,45 +110,7 @@ export default function ScanEntry({ entry, theme }) {
 
     case "media":
       if (!entry.items?.length) return null;
-      return (
-        <div className="ai-reveal my-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
-          <div className={`flex items-center gap-2 text-[0.7rem] uppercase tracking-widest mb-2 ${accentText}`}>
-            <span>◲</span>
-            <span>Medios · imágenes</span>
-            <span className="flex-1 h-px bg-current/20" />
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {entry.items.map((it, i) => {
-              const c = CONFIDENCE[it.confidence] || CONFIDENCE.low;
-              return (
-                <a
-                  key={i}
-                  href={it.page_url || it.image_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-16 flex-col items-center gap-1"
-                  title={it.title || it.source}
-                >
-                  <img
-                    src={it.image_url}
-                    alt={it.title || it.source}
-                    loading="lazy"
-                    onError={(e) => {
-                      // Oculta la miniatura si la imagen no carga (bloqueada/404).
-                      e.currentTarget.parentElement.style.display = "none";
-                    }}
-                    className="h-14 w-14 rounded object-cover border-2 hover:opacity-80"
-                    style={{ borderColor: c.color }}
-                  />
-                  <span className="max-w-full truncate text-[0.5rem] uppercase tracking-wide text-white/60">
-                    {it.source}
-                  </span>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      );
+      return <MediaGallery items={entry.items} accentText={accentText} />;
 
     case "ai":
       return (
