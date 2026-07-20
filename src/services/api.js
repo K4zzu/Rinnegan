@@ -130,6 +130,20 @@ export function planRoute(text) {
   return request("/route", { method: "POST", json: { text } });
 }
 
+// Interpreta lenguaje natural → { action, ... } (osint | route | command | unknown).
+export function interpret(text) {
+  return request("/interpret", { method: "POST", json: { text } });
+}
+
+// URL del proxy de imágenes (con token) para analizar fotos de otros dominios.
+export function imgProxyUrl(url) {
+  const u = new URL("/img", BASE_URL);
+  u.searchParams.set("url", url);
+  const token = getToken();
+  if (token) u.searchParams.set("token", token);
+  return u.toString();
+}
+
 // Eventos del protocolo SSE (ver spec: sección "SSE Event Protocol").
 const SSE_EVENTS = [
   "meta",

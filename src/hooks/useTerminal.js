@@ -1,7 +1,12 @@
 // src/hooks/useTerminal.js
 import { useState, useRef } from "react";
 import { parseCommand } from "../utils/commandParser";
-import { streamOsint, streamOsintImage, planRoute } from "../services/api";
+import {
+  streamOsint,
+  streamOsintImage,
+  planRoute,
+  interpret,
+} from "../services/api";
 import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
@@ -14,6 +19,28 @@ const CATEGORY_BY_COMMAND = {
   "osint phone": "phone",
   "osint name": "name",
 };
+
+// Comandos explícitos (atajos). Todo lo demás se interpreta como lenguaje
+// natural. Un solo-palabra debe coincidir exacto; los de prefijo llevan args.
+const EXPLICIT_SINGLE = [
+  "help",
+  "clear",
+  "about",
+  "banner",
+  "netstat",
+  "sysinfo",
+  "demo",
+  "logout",
+];
+const EXPLICIT_PREFIX = ["osint", "ruta", "route", "theme", "sound"];
+
+function isExplicitCommand(input) {
+  const parts = input.trim().split(/\s+/);
+  const first = parts[0].toLowerCase();
+  if (EXPLICIT_PREFIX.includes(first)) return true;
+  if (parts.length === 1 && EXPLICIT_SINGLE.includes(first)) return true;
+  return false;
+}
 
 export function useTerminal() {
   // history: array de objetos { type: 'input'|'output'|'error', text: string }
@@ -76,6 +103,12 @@ export function useTerminal() {
 
     // Guardamos el comando que escribió el usuario
     pushToHistory({ type: "input", text: input });
+
+    // Lenguaje natural: si no es un comando explícito, lo interpreta la IA.
+    if (!isExplicitCommand(input)) {
+      await handleNaturalLanguage(input, context);
+      return;
+    }
 
     const { command, args, category } = parseCommand(input);
 
@@ -198,6 +231,54 @@ export function useTerminal() {
         "  ruta <texto>             - Ruta + ETA con tráfico y tracker (voz 🎤 soportada)",
       ].join("\n"),
     });
+  };
+
+  // Corre el auto scan (detección + fan-out) directamente, sin pasar por el parser.
+  const runAutoScan = (value) => {
+    beginScan((handlers) => streamOsint("auto", value, handlers), {
+      kind: "auto",
+      queryFallback: value,
+    });
+  };
+
+  // Interpreta lenguaje natural (voz o texto) y despacha la acción.
+  const handleNaturalLanguage = async (text, context) => {
+    pushToHistory({ type: "output", text: "[ia] interpretando…" });
+    let action;
+    try {
+      action = await interpret(text);
+    } catch (err) {
+      pushToHistory({
+        type: "error",
+        text:
+          "No se pudo interpretar: " +
+          (err?.message || "IA no disponible") +
+          '. Prueba con un comando (`help`) o reformula.',
+      });
+      return;
+    }
+
+    switch (action?.action) {
+      case "osint":
+        if (action.value) runAutoScan(action.value);
+        else
+          pushToHistory({
+            type: "error",
+            text: "Entendí que quieres inteligencia, pero no un objetivo claro.",
+          });
+        break;
+      case "route":
+        await handleRoute([action.text || text]);
+        break;
+      case "command":
+        if (action.command) await handleCommand(action.command, context);
+        break;
+      default:
+        pushToHistory({
+          type: "output",
+          text: action?.message || "No entendí. Reformula o escribe `help`.",
+        });
+    }
   };
 
   const handleRoute = async (args = []) => {
