@@ -1,6 +1,6 @@
 // src/services/api.test.js
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { whoami, streamOsint, saveVault, getVaultGraph, getVaultNode, deleteVaultNode } from "./api";
+import { whoami, streamOsint, saveVault, getVaultGraph, deleteVaultNode } from "./api";
 
 afterEach(() => {
   vi.restoreAllMocks();
