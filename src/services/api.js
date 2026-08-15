@@ -169,23 +169,17 @@ const SSE_EVENTS = [
   "source_error",
   "media",
   "ai_report",
+  "node",
+  "edge",
   "done",
 ];
 
-/**
- * Abre un stream SSE contra GET /osint/<category>/stream?value=...
- * El token va como ?token= porque EventSource no admite cabeceras.
- * Devuelve { close } para cancelar el escaneo en curso.
- */
-export function streamOsint(category, value, handlers = {}) {
-  const url = new URL(`/osint/${category}/stream`, BASE_URL);
-  url.searchParams.set("value", value);
+// Abre un EventSource contra `url` (con ?token=) y despacha SSE_EVENTS a handlers.
+function openEventStream(url, handlers) {
   const token = getToken();
   if (token) url.searchParams.set("token", token);
 
   const source = new EventSource(url.toString());
-  // Cuando llega `done`, el server cierra la conexión; marcamos `finished`
-  // para no confundir ese cierre con un error de conexión.
   let finished = false;
 
   const parse = (raw) => {
@@ -218,6 +212,27 @@ export function streamOsint(category, value, handlers = {}) {
       source.close();
     },
   };
+}
+
+/**
+ * Abre un stream SSE contra GET /osint/<category>/stream?value=...
+ * El token va como ?token= porque EventSource no admite cabeceras.
+ */
+export function streamOsint(category, value, handlers = {}) {
+  const url = new URL(`/osint/${category}/stream`, BASE_URL);
+  url.searchParams.set("value", value);
+  return openEventStream(url, handlers);
+}
+
+/**
+ * Igual que streamOsint pero contra /osint/graph/stream (auto-pivot + grafo):
+ * además de los eventos normales, emite `node` y `edge`.
+ */
+export function streamOsintGraph(value, kind, handlers = {}) {
+  const url = new URL("/osint/graph/stream", BASE_URL);
+  url.searchParams.set("value", value);
+  if (kind) url.searchParams.set("kind", kind);
+  return openEventStream(url, handlers);
 }
 
 // Parsea un frame SSE ("event: x\ndata: {...}") en { event, data }.

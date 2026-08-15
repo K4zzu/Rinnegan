@@ -1,11 +1,31 @@
 // src/services/api.test.js
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { whoami, streamOsint, saveVault, getVaultGraph, deleteVaultNode } from "./api";
+import { whoami, streamOsint, streamOsintGraph, saveVault, getVaultGraph, deleteVaultNode } from "./api";
 
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
+
+// EventSource falso: captura la URL, permite emitir eventos y registra close().
+class FakeEventSource {
+  constructor(url) {
+    this.url = url;
+    this.listeners = {};
+    this.closed = false;
+    this.onerror = null;
+    FakeEventSource.last = this;
+  }
+  addEventListener(name, cb) {
+    (this.listeners[name] ||= []).push(cb);
+  }
+  emit(name, data) {
+    (this.listeners[name] || []).forEach((cb) => cb({ data }));
+  }
+  close() {
+    this.closed = true;
+  }
+}
 
 describe("whoami", () => {
   it("devuelve el JSON del backend en éxito", async () => {
@@ -37,26 +57,6 @@ describe("whoami", () => {
 });
 
 describe("streamOsint", () => {
-  // EventSource falso: captura la URL, permite emitir eventos y registra close().
-  class FakeEventSource {
-    constructor(url) {
-      this.url = url;
-      this.listeners = {};
-      this.closed = false;
-      this.onerror = null;
-      FakeEventSource.last = this;
-    }
-    addEventListener(name, cb) {
-      (this.listeners[name] ||= []).push(cb);
-    }
-    emit(name, data) {
-      (this.listeners[name] || []).forEach((cb) => cb({ data }));
-    }
-    close() {
-      this.closed = true;
-    }
-  }
-
   beforeEach(() => {
     vi.stubGlobal("EventSource", FakeEventSource);
   });
@@ -112,6 +112,26 @@ describe("streamOsint", () => {
     const control = streamOsint("ip", "8.8.8.8", {});
     control.close();
     expect(FakeEventSource.last.closed).toBe(true);
+  });
+});
+
+describe("streamOsintGraph", () => {
+  beforeEach(() => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+  });
+
+  it("abre /osint/graph/stream con value y kind, y despacha node/edge", () => {
+    const node = vi.fn();
+    const edge = vi.fn();
+    streamOsintGraph("Carlos", "name", { node, edge });
+    expect(FakeEventSource.last.url).toContain("/osint/graph/stream");
+    expect(FakeEventSource.last.url).toContain("value=Carlos");
+    expect(FakeEventSource.last.url).toContain("kind=name");
+
+    FakeEventSource.last.emit("node", JSON.stringify({ id: "n0", kind: "name", value: "Carlos", parent_id: null }));
+    FakeEventSource.last.emit("edge", JSON.stringify({ src: "n0", dst: "n1", relation: "pivot" }));
+    expect(node).toHaveBeenCalledWith({ id: "n0", kind: "name", value: "Carlos", parent_id: null });
+    expect(edge).toHaveBeenCalledWith({ src: "n0", dst: "n1", relation: "pivot" });
   });
 });
 
