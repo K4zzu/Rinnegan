@@ -1,6 +1,7 @@
 // src/components/OutputLine.jsx
 import { lazy, Suspense } from "react";
 import ScanEntry from "./ScanEntry";
+import VaultList from "./VaultList";
 
 // MapLibre es pesado: se carga bajo demanda solo al mostrar una ruta.
 const RouteMap = lazy(() => import("./RouteMap"));
@@ -11,6 +12,10 @@ export default function OutputLine({ entry, theme }) {
   // Los eventos de un escaneo OSINT se renderizan con estética HUD.
   if (entry.type === "scan") {
     return <ScanEntry entry={entry} theme={theme} />;
+  }
+
+  if (entry.type === "vault") {
+    return <VaultList data={entry.data} />;
   }
 
   // Mapa de ruta con ETA + tracker (chunk aparte).
