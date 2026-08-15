@@ -1,6 +1,6 @@
 // src/services/api.test.js
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { whoami, streamOsint, streamOsintGraph, saveVault, getVaultGraph, deleteVaultNode } from "./api";
+import { whoami, streamOsint, streamOsintGraph, saveVault, getVaultGraph, deleteVaultNode, facesMatch } from "./api";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -170,5 +170,20 @@ describe("vault client", () => {
     const [url, opts] = vi.mocked(fetch).mock.calls[0];
     expect(url).toContain("/vault/node/42");
     expect(opts.method).toBe("DELETE");
+  });
+});
+
+describe("facesMatch", () => {
+  it("hace POST a /faces/match con el descriptor", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ matches: [] }) })
+    );
+    const res = await facesMatch([0.1, 0.2]);
+    expect(res).toEqual({ matches: [] });
+    const [url, opts] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toContain("/faces/match");
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual({ descriptor: [0.1, 0.2] });
   });
 });

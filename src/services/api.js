@@ -152,6 +152,11 @@ export function deleteVaultNode(id) {
   return request(`/vault/node/${id}`, { method: "DELETE" });
 }
 
+// Compara un descriptor facial contra las caras guardadas del usuario.
+export function facesMatch(descriptor) {
+  return request("/faces/match", { method: "POST", json: { descriptor } });
+}
+
 // URL del proxy de imágenes (con token) para analizar fotos de otros dominios.
 export function imgProxyUrl(url) {
   const u = new URL("/img", BASE_URL);
