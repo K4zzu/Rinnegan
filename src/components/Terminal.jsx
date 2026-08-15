@@ -5,6 +5,7 @@ import { useClientInfo, useSystemStats } from "../hooks/useClientInfo";
 import PromptLine from "./PromptLine";
 import OutputLine from "./OutputLine";
 import GodEye from "./GodEye";
+import UsageIndicator from "./UsageIndicator";
 import AsciiBanner from "./AsciiBanner";
 import { THEMES, AVAILABLE_THEMES } from "../theme/themes";
 import { sound } from "../utils/sound";
@@ -308,6 +309,7 @@ export default function Terminal({ user, onLogout }) {
             RINNEGAN
           </span>
           <span className="ml-1 truncate opacity-50">· {theme.label}</span>
+          <UsageIndicator className="ml-auto shrink-0" />
         </div>
 
         {/* Línea con datos del usuario */}
