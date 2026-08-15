@@ -46,7 +46,7 @@ export function applyScanEvent(record, entry) {
         summary: {
           findings: entry.findings ?? 0,
           errors: entry.errors ?? 0,
-          elapsed: entry.elapsed ?? null,
+          elapsed: typeof entry.elapsed === "number" ? entry.elapsed : null,
         },
       };
     default:

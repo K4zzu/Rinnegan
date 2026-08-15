@@ -45,6 +45,22 @@ describe("scanRecord", () => {
     expect(p.faces).toEqual([]);
   });
 
+  it("coerciona el sentinel de display '?' a null en elapsed (no debe llegar al payload)", () => {
+    let r = createScanRecord({ kind: "username", query: "carlos" });
+    r = applyScanEvent(r, { scan: "done", findings: 1, errors: 0, elapsed: "?" });
+
+    expect(r.summary.elapsed).toBeNull();
+    expect(toSavePayload(r).scans[0].elapsed_ms).toBeNull();
+  });
+
+  it("mantiene el caso numérico existente (elapsed sigue siendo number)", () => {
+    let r = createScanRecord({ kind: "username", query: "carlos" });
+    r = applyScanEvent(r, { scan: "done", findings: 1, errors: 0, elapsed: 4321 });
+
+    expect(r.summary.elapsed).toBe(4321);
+    expect(toSavePayload(r).scans[0].elapsed_ms).toBe(4321);
+  });
+
   it("parseSaveAnswer reconoce guardar/descartar/inválido", () => {
     expect(parseSaveAnswer("s")).toBe("save");
     expect(parseSaveAnswer("Sí")).toBe("save");
