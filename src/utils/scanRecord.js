@@ -144,6 +144,7 @@ export function buildFaces(media, nodeId, getDescriptor) {
   if (!media || !media.length) return [];
   const faces = [];
   for (const it of media) {
+    if (it.origin === "reverse") continue; // no persistir caras de terceros (reverse-image)
     const descriptor = getDescriptor(it.image_url);
     if (!descriptor) continue;
     faces.push({

@@ -18,6 +18,7 @@ import {
   buildFaces,
 } from "../utils/scanRecord";
 import { getDescriptor } from "../utils/faceCache";
+import { analyzeFaces } from "../utils/faceCluster";
 import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
@@ -947,8 +948,21 @@ OSINT TERMINAL
   const saveCurrentScan = async (record) => {
     pushToHistory({ type: "output", text: "[bóveda] archivando…" });
     try {
+      const media = record.media || [];
+      // Asegura descriptores de las fotos de perfil aún no analizadas (si el usuario
+      // archiva antes de que la galería termine el análisis facial). Best-effort.
+      const pending = media.filter(
+        (it) => it.origin !== "reverse" && !getDescriptor(it.image_url)
+      );
+      if (pending.length) {
+        try {
+          await analyzeFaces(pending);
+        } catch {
+          /* best-effort: si el análisis falla, se archiva sin esas caras */
+        }
+      }
       const payload = toSavePayload(record);
-      payload.faces = buildFaces(record.media, payload.root, getDescriptor);
+      payload.faces = buildFaces(media, payload.root, getDescriptor);
       const { graph_id } = await saveVault(payload);
       pushToHistory({ type: "output", text: `✓ archivado en la bóveda (#${graph_id}).` });
     } catch (err) {

@@ -134,4 +134,20 @@ describe("buildFaces", () => {
     expect(buildFaces([], "n0", () => null)).toEqual([]);
     expect(buildFaces([{ source: "x", image_url: "u" }], "n0", () => null)).toEqual([]);
   });
+
+  it("excluye media con origin:'reverse' aunque tenga descriptor cacheado (no persiste caras de terceros)", () => {
+    const media = [
+      { source: "github", image_url: "http://x/a.jpg", page_url: "http://gh/u" },
+      { source: "google", image_url: "http://x/stranger.jpg", origin: "reverse" },
+    ];
+    const cache = {
+      "http://x/a.jpg": [0.1, 0.2, 0.3],
+      "http://x/stranger.jpg": [0.9, 0.8, 0.7],
+    };
+    const get = (url) => cache[url] || null;
+    const faces = buildFaces(media, "n0", get);
+    expect(faces).toHaveLength(1);
+    expect(faces[0].image_url).toBe("http://x/a.jpg");
+    expect(faces.some((f) => f.image_url === "http://x/stranger.jpg")).toBe(false);
+  });
 });
