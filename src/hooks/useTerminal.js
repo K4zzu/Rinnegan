@@ -6,7 +6,15 @@ import {
   streamOsintImage,
   planRoute,
   interpret,
+  saveVault,
+  getVaultGraph,
 } from "../services/api";
+import {
+  createScanRecord,
+  applyScanEvent,
+  toSavePayload,
+  parseSaveAnswer,
+} from "../utils/scanRecord";
 import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
@@ -31,6 +39,7 @@ const EXPLICIT_SINGLE = [
   "sysinfo",
   "demo",
   "logout",
+  "boveda",
 ];
 const EXPLICIT_PREFIX = ["osint", "ruta", "route", "theme", "sound"];
 
@@ -54,6 +63,9 @@ export function useTerminal() {
   const activeStreamRef = useRef(null);
   // Timers de la demo local (para poder cancelarla).
   const demoTimersRef = useRef([]);
+  // Registro del escaneo en curso (para poder archivarlo) y la pregunta pendiente.
+  const currentScanRef = useRef(null);
+  const pendingSaveRef = useRef(null);
 
   const pushToHistory = (entry) => {
     setHistory((prev) => [...prev, entry]);
@@ -100,6 +112,24 @@ export function useTerminal() {
   const handleCommand = async (rawInput, context = {}) => {
     const input = rawInput.trim();
     if (!input) return;
+
+    // Si hay una pregunta de guardado pendiente, la respuesta la consume.
+    if (pendingSaveRef.current) {
+      pushToHistory({ type: "input", text: input });
+      const answer = parseSaveAnswer(input);
+      if (answer === "invalid") {
+        pushToHistory({ type: "output", text: "Responde s (guardar) o n (descartar)." });
+        return;
+      }
+      const record = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      if (answer === "discard") {
+        pushToHistory({ type: "output", text: "— descartado (sesión efímera)." });
+        return;
+      }
+      await saveCurrentScan(record);
+      return;
+    }
 
     // Guardamos el comando que escribió el usuario
     pushToHistory({ type: "input", text: input });
@@ -151,6 +181,11 @@ export function useTerminal() {
 
     if (command === "demo") {
       handleDemo();
+      return;
+    }
+
+    if (command === "boveda") {
+      await handleVault();
       return;
     }
 
@@ -734,6 +769,8 @@ OSINT TERMINAL
     setScanProgress(null);
     sound.unlock();
 
+    currentScanRef.current = createScanRecord({ kind, query: queryFallback });
+
     const finish = () => {
       setIsProcessing(false);
       setStatusText(null);
@@ -741,10 +778,16 @@ OSINT TERMINAL
       activeStreamRef.current = null;
     };
 
+    // Empuja al historial y a la vez acumula el evento en el registro guardable.
+    const pushScan = (entry) => {
+      pushToHistory(entry);
+      currentScanRef.current = applyScanEvent(currentScanRef.current, entry);
+    };
+
     activeStreamRef.current = openStream({
       meta: (d) => {
         sound.scanStart();
-        pushToHistory({
+        pushScan({
           type: "scan",
           scan: "start",
           kind: d?.type ?? kind,
@@ -765,7 +808,7 @@ OSINT TERMINAL
       },
       finding: (d) => {
         sound.finding(d?.confidence);
-        pushToHistory({
+        pushScan({
           type: "scan",
           scan: "finding",
           provider: d?.provider,
@@ -777,7 +820,7 @@ OSINT TERMINAL
       },
       source_error: (d) => {
         sound.error();
-        pushToHistory({
+        pushScan({
           type: "scan",
           scan: "source-error",
           provider: d?.provider,
@@ -787,22 +830,24 @@ OSINT TERMINAL
       media: (d) => {
         if (!d?.items?.length) return;
         sound.finding("high");
-        pushToHistory({ type: "scan", scan: "media", items: d.items });
+        pushScan({ type: "scan", scan: "media", items: d.items });
       },
       ai_report: (d) => {
         sound.lock(); // objetivo fijado: identidad resuelta
-        pushToHistory({ type: "scan", scan: "ai", text: d?.text ?? "" });
+        pushScan({ type: "scan", scan: "ai", text: d?.text ?? "" });
       },
       done: (d) => {
         sound.done();
         const s = d?.summary || {};
-        pushToHistory({
+        pushScan({
           type: "scan",
           scan: "done",
           findings: s.findings ?? 0,
           errors: s.errors ?? 0,
           elapsed: s.elapsed_ms ?? "?",
         });
+        pendingSaveRef.current = currentScanRef.current;
+        pushToHistory({ type: "output", text: "◈ ¿archivar en la bóveda? [s/n]" });
         finish();
       },
       error: (err) => {
@@ -859,6 +904,35 @@ OSINT TERMINAL
       kind: "image",
       queryFallback: file.name,
     });
+  };
+
+  const saveCurrentScan = async (record) => {
+    pushToHistory({ type: "output", text: "[bóveda] archivando…" });
+    try {
+      const { graph_id } = await saveVault(toSavePayload(record));
+      pushToHistory({ type: "output", text: `✓ archivado en la bóveda (#${graph_id}).` });
+    } catch (err) {
+      pushToHistory({
+        type: "error",
+        text:
+          "⚠ no se pudo archivar: " +
+          (err?.message || "error") +
+          " (la sesión sigue en memoria).",
+      });
+    }
+  };
+
+  const handleVault = async () => {
+    pushToHistory({ type: "output", text: "[bóveda] cargando…" });
+    try {
+      const data = await getVaultGraph();
+      pushToHistory({ type: "vault", data });
+    } catch (err) {
+      pushToHistory({
+        type: "error",
+        text: "No se pudo cargar la bóveda: " + (err?.message || "error"),
+      });
+    }
   };
 
   return {
