@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { parseCommand } from "../utils/commandParser";
 import {
   streamOsint,
+  streamOsintGraph,
   streamOsintImage,
   planRoute,
   interpret,
@@ -268,10 +269,10 @@ export function useTerminal() {
     });
   };
 
-  // Corre el auto scan (detección + fan-out) directamente, sin pasar por el parser.
-  const runAutoScan = (value) => {
-    beginScan((handlers) => streamOsint("auto", value, handlers), {
-      kind: "auto",
+  // Corre el escaneo AUTO con grafo + auto-pivot (detección + fan-out en backend).
+  const runAutoScan = (value, kind) => {
+    beginScan((handlers) => streamOsintGraph(value, kind, handlers), {
+      kind: kind || "auto",
       queryFallback: value,
     });
   };
@@ -832,6 +833,27 @@ OSINT TERMINAL
         sound.finding("high");
         pushScan({ type: "scan", scan: "media", items: d.items });
       },
+      node: (d) => {
+        if (!d) return;
+        currentScanRef.current = applyScanEvent(currentScanRef.current, {
+          scan: "node",
+          id: d.id,
+          kind: d.kind,
+          value: d.value,
+          label: d.label,
+          parent_id: d.parent_id ?? null,
+        });
+      },
+      edge: (d) => {
+        if (!d) return;
+        currentScanRef.current = applyScanEvent(currentScanRef.current, {
+          scan: "edge",
+          src: d.src,
+          dst: d.dst,
+          relation: d.relation,
+          confidence: d.confidence ?? null,
+        });
+      },
       ai_report: (d) => {
         sound.lock(); // objetivo fijado: identidad resuelta
         pushScan({ type: "scan", scan: "ai", text: d?.text ?? "" });
@@ -846,6 +868,15 @@ OSINT TERMINAL
           errors: s.errors ?? 0,
           elapsed: s.elapsed_ms ?? "?",
         });
+        if (currentScanRef.current?.nodes?.length) {
+          pushToHistory({
+            type: "graph",
+            data: {
+              nodes: currentScanRef.current.nodes,
+              edges: currentScanRef.current.edges,
+            },
+          });
+        }
         pendingSaveRef.current = currentScanRef.current;
         pushToHistory({ type: "output", text: "◈ ¿archivar en la bóveda? [s/n]" });
         finish();
@@ -879,6 +910,11 @@ OSINT TERMINAL
         type: "error",
         text: `Comando OSINT no reconocido: ${command}`,
       });
+      return;
+    }
+
+    if (command === "osint auto") {
+      runAutoScan(value);
       return;
     }
 
