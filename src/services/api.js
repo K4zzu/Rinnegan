@@ -135,6 +135,23 @@ export function interpret(text) {
   return request("/interpret", { method: "POST", json: { text } });
 }
 
+// ── Bóveda (investigaciones persistidas) ───────────────────────────────────
+export function saveVault(payload) {
+  return request("/vault/save", { method: "POST", json: payload });
+}
+
+export function getVaultGraph() {
+  return request("/vault/graph");
+}
+
+export function getVaultNode(id) {
+  return request(`/vault/node/${id}`);
+}
+
+export function deleteVaultNode(id) {
+  return request(`/vault/node/${id}`, { method: "DELETE" });
+}
+
 // URL del proxy de imágenes (con token) para analizar fotos de otros dominios.
 export function imgProxyUrl(url) {
   const u = new URL("/img", BASE_URL);

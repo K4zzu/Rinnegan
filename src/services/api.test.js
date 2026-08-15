@@ -1,6 +1,6 @@
 // src/services/api.test.js
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { whoami, streamOsint } from "./api";
+import { whoami, streamOsint, saveVault, getVaultGraph, getVaultNode, deleteVaultNode } from "./api";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -112,5 +112,43 @@ describe("streamOsint", () => {
     const control = streamOsint("ip", "8.8.8.8", {});
     control.close();
     expect(FakeEventSource.last.closed).toBe(true);
+  });
+});
+
+describe("vault client", () => {
+  it("saveVault hace POST a /vault/save con el payload", async () => {
+    const payload = { root: "n0", nodes: [], edges: [], scans: [], faces: [] };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ graph_id: 7 }) })
+    );
+    const res = await saveVault(payload);
+    expect(res).toEqual({ graph_id: 7 });
+    const [url, opts] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toContain("/vault/save");
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual(payload);
+  });
+
+  it("getVaultGraph hace GET a /vault/graph", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ nodes: [], edges: [] }) })
+    );
+    const res = await getVaultGraph();
+    expect(res).toEqual({ nodes: [], edges: [] });
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("/vault/graph");
+  });
+
+  it("deleteVaultNode hace DELETE a /vault/node/{id}", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    );
+    const res = await deleteVaultNode(42);
+    expect(res).toBeNull();
+    const [url, opts] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toContain("/vault/node/42");
+    expect(opts.method).toBe("DELETE");
   });
 });
