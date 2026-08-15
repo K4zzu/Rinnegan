@@ -157,6 +157,11 @@ export function facesMatch(descriptor) {
   return request("/faces/match", { method: "POST", json: { descriptor } });
 }
 
+// Consumo de cuotas + costo USD acumulado (period: "month" | "day").
+export function getUsage(period = "month") {
+  return request("/usage", { params: { period } });
+}
+
 // URL del proxy de imágenes (con token) para analizar fotos de otros dominios.
 export function imgProxyUrl(url) {
   const u = new URL("/img", BASE_URL);

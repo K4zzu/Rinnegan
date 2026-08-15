@@ -1,6 +1,6 @@
 // src/services/api.test.js
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { whoami, streamOsint, streamOsintGraph, saveVault, getVaultGraph, deleteVaultNode, facesMatch } from "./api";
+import { whoami, streamOsint, streamOsintGraph, saveVault, getVaultGraph, deleteVaultNode, facesMatch, getUsage } from "./api";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -185,5 +185,22 @@ describe("facesMatch", () => {
     expect(url).toContain("/faces/match");
     expect(opts.method).toBe("POST");
     expect(JSON.parse(opts.body)).toEqual({ descriptor: [0.1, 0.2] });
+  });
+});
+
+describe("getUsage", () => {
+  it("hace GET a /usage con el periodo", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ providers: [], total_cost_usd: 0, period: "month" }),
+      })
+    );
+    const res = await getUsage("month");
+    expect(res).toEqual({ providers: [], total_cost_usd: 0, period: "month" });
+    const [url] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toContain("/usage");
+    expect(url).toContain("period=month");
   });
 });
