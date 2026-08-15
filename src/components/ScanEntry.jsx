@@ -14,6 +14,17 @@ const CONFIDENCE = {
 
 const ERROR_COLOR = "#f87171";
 
+const fmtUsd = (n) =>
+  typeof n === "number" ? `$${n.toFixed(n < 0.01 ? 4 : 2)}` : "$0";
+
+function fmtBreakdown(b) {
+  const amount =
+    typeof b.tokens === "number"
+      ? `${Math.round(b.tokens / 100) / 10}k tok`
+      : `×${b.units ?? 1}`;
+  return `${b.provider} ${amount} ${fmtUsd(b.usd)}`;
+}
+
 function Badge({ children }) {
   return (
     <span className="shrink-0 text-[0.55rem] uppercase tracking-wider px-1 py-px rounded-sm bg-white/5 border border-white/10 text-white/70">
@@ -136,6 +147,17 @@ export default function ScanEntry({ entry, theme }) {
             </span>
           ) : null}
           <span className="text-white/40">{entry.elapsed}ms</span>
+          {entry.cost && (entry.cost.usd || entry.cost.breakdown?.length) ? (
+            <span className="normal-case text-white/50">
+              costo {fmtUsd(entry.cost.usd)}
+              {entry.cost.breakdown?.length ? (
+                <span className="text-white/35">
+                  {" "}
+                  ({entry.cost.breakdown.map((b) => fmtBreakdown(b)).join(" · ")})
+                </span>
+              ) : null}
+            </span>
+          ) : null}
         </div>
       );
 
