@@ -5,6 +5,7 @@
 // perfiles → probabilidad de que sean la misma persona.
 // face-api se importa dinámicamente (chunk aparte, no infla el bundle inicial).
 import { imgProxyUrl } from "../services/api";
+import { setDescriptor } from "./faceCache";
 
 let faceapi = null;
 let modelsLoaded = false;
@@ -121,6 +122,7 @@ export async function analyzeFaces(items) {
     } catch {
       descriptor = null;
     }
+    if (descriptor) setDescriptor(it.image_url, descriptor);
     results.push({ item: it, descriptor });
   }
 
