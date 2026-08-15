@@ -1,11 +1,13 @@
 // src/components/MediaGallery.jsx
 // Galería de imágenes de un escaneo OSINT + análisis facial en el navegador.
-// Separa las fotos de perfil de los matches de reverse-image ("aparece también
-// en…"), pero corre el análisis facial (face-api.js, lazy) sobre TODAS las
-// fotos: así una cara que aparece en un reverse-image entra al agrupamiento.
-// La identidad no se "verifica": es consistencia de la cara que más se repite.
+// Separa fotos de perfil de matches de reverse-image ("aparece también en…"),
+// corre el análisis facial (face-api.js, lazy) sobre TODAS las fotos, y además
+// consulta la bóveda (POST /faces/match) por cada cara para avisar si esa
+// persona ya apareció en un escaneo guardado ("visto antes").
 import { useEffect, useState } from "react";
 import { analyzeFaces } from "../utils/faceCluster";
+import { getDescriptor } from "../utils/faceCache";
+import { facesMatch } from "../services/api";
 
 const CONFIDENCE = {
   high: { color: "#34d399" },
@@ -13,54 +15,64 @@ const CONFIDENCE = {
   low: { color: "#94a3b8" },
 };
 
-function Thumbnail({ it, annotation: a }) {
+function Thumbnail({ it, annotation: a, match }) {
   const c = CONFIDENCE[it.confidence] || CONFIDENCE.low;
-  // Borde: si el análisis marcó la cara dominante, resáltala en verde.
-  const borderColor = a?.inDominant ? "#34d399" : c.color;
+  const borderColor = match ? "#f59e0b" : a?.inDominant ? "#34d399" : c.color;
   return (
-    <a
-      href={it.page_url || it.image_url}
-      target="_blank"
-      rel="noreferrer"
-      className="relative flex w-16 flex-col items-center gap-1"
-      title={it.title || it.source}
-    >
-      <img
-        src={it.image_url}
-        alt={it.title || it.source}
-        loading="lazy"
-        onError={(e) => {
-          e.currentTarget.parentElement.style.display = "none";
-        }}
-        className="h-14 w-14 rounded object-cover border-2 hover:opacity-80"
-        style={{ borderColor }}
-      />
-      {a ? (
-        <span
-          className="absolute top-0 right-0 rounded-bl px-1 text-[0.5rem] font-bold leading-tight"
-          style={{
-            backgroundColor: a.inDominant
-              ? "rgba(16,185,129,0.85)"
-              : a.hasFace
-              ? "rgba(148,163,184,0.75)"
-              : "rgba(0,0,0,0.6)",
-            color: "#000",
+    <div className="relative flex w-16 flex-col items-center gap-1" data-thumb>
+      <a
+        href={it.page_url || it.image_url}
+        target="_blank"
+        rel="noreferrer"
+        className="relative"
+        title={it.title || it.source}
+      >
+        <img
+          src={it.image_url}
+          alt={it.title || it.source}
+          loading="lazy"
+          onError={(e) => {
+            const card = e.currentTarget.closest("[data-thumb]");
+            if (card) card.style.display = "none";
           }}
-          title={
-            a.inDominant
-              ? "coincide con la cara que más se repite"
-              : a.hasFace
-              ? "otra cara"
-              : "sin rostro detectado"
-          }
-        >
-          {a.inDominant ? "✓" : a.hasFace ? "≠" : "∅"}
-        </span>
-      ) : null}
+          className="h-14 w-14 rounded object-cover border-2 hover:opacity-80"
+          style={{ borderColor }}
+        />
+        {a ? (
+          <span
+            className="absolute top-0 right-0 rounded-bl px-1 text-[0.5rem] font-bold leading-tight"
+            style={{
+              backgroundColor: a.inDominant
+                ? "rgba(16,185,129,0.85)"
+                : a.hasFace
+                ? "rgba(148,163,184,0.75)"
+                : "rgba(0,0,0,0.6)",
+              color: "#000",
+            }}
+            title={
+              a.inDominant
+                ? "coincide con la cara que más se repite"
+                : a.hasFace
+                ? "otra cara"
+                : "sin rostro detectado"
+            }
+          >
+            {a.inDominant ? "✓" : a.hasFace ? "≠" : "∅"}
+          </span>
+        ) : null}
+      </a>
       <span className="max-w-full truncate text-[0.5rem] uppercase tracking-wide text-white/60">
         {it.source}
       </span>
-    </a>
+      {match ? (
+        <span
+          className="max-w-full truncate text-[0.5rem] font-semibold text-amber-300"
+          title={`ya apareció investigando a ${match.label}`}
+        >
+          ⚠ visto antes · {match.label} {match.probability}%
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -68,6 +80,8 @@ export default function MediaGallery({ items, accentText }) {
   const [face, setFace] = useState(() =>
     items && items.length >= 2 ? { status: "loading" } : { status: "idle" }
   );
+  // Coincidencias cross-scan por índice de item: { [i]: match }.
+  const [matches, setMatches] = useState({});
 
   useEffect(() => {
     if (!items || items.length < 2) return;
@@ -80,10 +94,32 @@ export default function MediaGallery({ items, accentText }) {
     };
   }, [items]);
 
-  // Anotación por foto (misma order que items), si el análisis terminó.
-  const annotated = face.status === "done" ? face.res.annotated : null;
+  // Cuando el análisis terminó, los descriptores ya están en caché: consulta
+  // la bóveda por cada cara y guarda la mejor coincidencia por item.
+  useEffect(() => {
+    if (face.status !== "done" || !items) return;
+    let cancelled = false;
+    (async () => {
+      const found = {};
+      for (let i = 0; i < items.length; i++) {
+        const d = getDescriptor(items[i].image_url);
+        if (!d) continue;
+        try {
+          const res = await facesMatch(d);
+          const m = res?.matches?.[0];
+          if (m) found[i] = m;
+        } catch {
+          // silencioso: la alerta cross-scan es best-effort.
+        }
+      }
+      if (!cancelled) setMatches(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [face.status, items]);
 
-  // Conserva el índice original para mapear la anotación tras separar en grupos.
+  const annotated = face.status === "done" ? face.res.annotated : null;
   const withMeta = items.map((it, i) => ({ it, i, a: annotated?.[i] }));
   const profile = withMeta.filter(({ it }) => it.origin !== "reverse");
   const reverse = withMeta.filter(({ it }) => it.origin === "reverse");
@@ -98,7 +134,7 @@ export default function MediaGallery({ items, accentText }) {
 
       <div className="flex flex-wrap gap-3">
         {profile.map(({ it, i, a }) => (
-          <Thumbnail key={i} it={it} annotation={a} />
+          <Thumbnail key={i} it={it} annotation={a} match={matches[i]} />
         ))}
       </div>
 
@@ -111,7 +147,7 @@ export default function MediaGallery({ items, accentText }) {
           </div>
           <div className="flex flex-wrap gap-3">
             {reverse.map(({ it, i, a }) => (
-              <Thumbnail key={i} it={it} annotation={a} />
+              <Thumbnail key={i} it={it} annotation={a} match={matches[i]} />
             ))}
           </div>
         </>
