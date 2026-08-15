@@ -4,6 +4,7 @@ import {
   applyScanEvent,
   toSavePayload,
   parseSaveAnswer,
+  buildFaces,
 } from "./scanRecord";
 
 describe("scanRecord", () => {
@@ -107,5 +108,30 @@ describe("scanRecord · grafo", () => {
     expect(p.nodes).toEqual([{ id: "n0", kind: "username", value: "carlos99", label: "carlos99" }]);
     expect(p.edges).toEqual([]);
     expect(p.scans[0].node).toBe("n0");
+  });
+});
+
+describe("buildFaces", () => {
+  it("arma faces solo para media con descriptor cacheado, atadas al nodo", () => {
+    const media = [
+      { source: "github", image_url: "http://x/a.jpg", page_url: "http://gh/u" },
+      { source: "insta", image_url: "http://x/b.jpg" }, // sin descriptor
+    ];
+    const cache = { "http://x/a.jpg": [0.1, 0.2, 0.3] };
+    const get = (url) => cache[url] || null;
+    const faces = buildFaces(media, "n0", get);
+    expect(faces).toHaveLength(1);
+    expect(faces[0]).toEqual({
+      node: "n0",
+      source: "github",
+      image_url: "http://x/a.jpg",
+      page_url: "http://gh/u",
+      descriptor: [0.1, 0.2, 0.3],
+    });
+  });
+
+  it("devuelve [] si no hay media o ninguna tiene descriptor", () => {
+    expect(buildFaces([], "n0", () => null)).toEqual([]);
+    expect(buildFaces([{ source: "x", image_url: "u" }], "n0", () => null)).toEqual([]);
   });
 });

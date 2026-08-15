@@ -136,3 +136,23 @@ export function parseSaveAnswer(input) {
   if (DISCARD_WORDS.includes(a)) return "discard";
   return "invalid";
 }
+
+// Arma el array `faces` del payload de guardado a partir de la media del
+// escaneo y los descriptores cacheados. `getDescriptor(url)` inyectado
+// (normalmente el de faceCache). Solo incluye media con descriptor.
+export function buildFaces(media, nodeId, getDescriptor) {
+  if (!media || !media.length) return [];
+  const faces = [];
+  for (const it of media) {
+    const descriptor = getDescriptor(it.image_url);
+    if (!descriptor) continue;
+    faces.push({
+      node: nodeId,
+      source: it.source,
+      image_url: it.image_url,
+      page_url: it.page_url ?? null,
+      descriptor,
+    });
+  }
+  return faces;
+}
