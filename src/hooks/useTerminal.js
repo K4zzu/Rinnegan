@@ -9,6 +9,7 @@ import {
   interpret,
   saveVault,
   getVaultGraph,
+  getUsage,
 } from "../services/api";
 import {
   createScanRecord,
@@ -44,6 +45,8 @@ const EXPLICIT_SINGLE = [
   "demo",
   "logout",
   "boveda",
+  "cuotas",
+  "uso",
 ];
 const EXPLICIT_PREFIX = ["osint", "ruta", "route", "theme", "sound"];
 
@@ -190,6 +193,11 @@ export function useTerminal() {
 
     if (command === "boveda") {
       await handleVault();
+      return;
+    }
+
+    if (command === "cuotas" || command === "uso") {
+      await handleUsage();
       return;
     }
 
@@ -870,6 +878,7 @@ OSINT TERMINAL
           findings: s.findings ?? 0,
           errors: s.errors ?? 0,
           elapsed: s.elapsed_ms ?? "?",
+          cost: d?.cost ?? null,
         });
         if (currentScanRef.current?.nodes?.length) {
           pushToHistory({
@@ -972,6 +981,19 @@ OSINT TERMINAL
           "⚠ no se pudo archivar: " +
           (err?.message || "error") +
           " (la sesión sigue en memoria).",
+      });
+    }
+  };
+
+  const handleUsage = async () => {
+    pushToHistory({ type: "output", text: "[cuotas] consultando…" });
+    try {
+      const data = await getUsage("month");
+      pushToHistory({ type: "usage", data });
+    } catch (err) {
+      pushToHistory({
+        type: "error",
+        text: "No se pudo cargar el uso: " + (err?.message || "error"),
       });
     }
   };
