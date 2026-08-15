@@ -5,6 +5,7 @@ import VaultList from "./VaultList";
 
 // MapLibre es pesado: se carga bajo demanda solo al mostrar una ruta.
 const RouteMap = lazy(() => import("./RouteMap"));
+const GraphView = lazy(() => import("./GraphView"));
 
 export default function OutputLine({ entry, theme }) {
   const colors = theme?.colors || {};
@@ -16,6 +17,18 @@ export default function OutputLine({ entry, theme }) {
 
   if (entry.type === "vault") {
     return <VaultList data={entry.data} />;
+  }
+
+  if (entry.type === "graph") {
+    return (
+      <Suspense
+        fallback={
+          <div className="my-2 text-xs text-violet-300/60">[grafo] dibujando…</div>
+        }
+      >
+        <GraphView data={entry.data} />
+      </Suspense>
+    );
   }
 
   // Mapa de ruta con ETA + tracker (chunk aparte).
