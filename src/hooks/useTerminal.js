@@ -15,7 +15,9 @@ import {
   applyScanEvent,
   toSavePayload,
   parseSaveAnswer,
+  buildFaces,
 } from "../utils/scanRecord";
+import { getDescriptor } from "../utils/faceCache";
 import { sound } from "../utils/sound";
 
 // Mapea el comando parseado a la categoría del endpoint del backend.
@@ -945,7 +947,9 @@ OSINT TERMINAL
   const saveCurrentScan = async (record) => {
     pushToHistory({ type: "output", text: "[bóveda] archivando…" });
     try {
-      const { graph_id } = await saveVault(toSavePayload(record));
+      const payload = toSavePayload(record);
+      payload.faces = buildFaces(record.media, payload.root, getDescriptor);
+      const { graph_id } = await saveVault(payload);
       pushToHistory({ type: "output", text: `✓ archivado en la bóveda (#${graph_id}).` });
     } catch (err) {
       pushToHistory({
