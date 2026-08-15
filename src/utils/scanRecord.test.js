@@ -70,3 +70,42 @@ describe("scanRecord", () => {
     expect(parseSaveAnswer("hola")).toBe("invalid");
   });
 });
+
+describe("scanRecord · grafo", () => {
+  it("acumula eventos node/edge en el registro", () => {
+    let r = createScanRecord({ kind: "name", query: "Carlos" });
+    r = applyScanEvent(r, { scan: "node", id: "n0", kind: "name", value: "Carlos", label: "Carlos", parent_id: null });
+    r = applyScanEvent(r, { scan: "node", id: "n1", kind: "username", value: "carlos99", label: "carlos99", parent_id: "n0" });
+    r = applyScanEvent(r, { scan: "edge", src: "n0", dst: "n1", relation: "pivot", confidence: 0.8 });
+    expect(r.nodes).toHaveLength(2);
+    expect(r.nodes[1]).toMatchObject({ id: "n1", kind: "username", parent_id: "n0" });
+    expect(r.edges).toEqual([{ src: "n0", dst: "n1", relation: "pivot", confidence: 0.8 }]);
+  });
+
+  it("toSavePayload emite el grafo acumulado y ata el scan al nodo raíz (sin parent_id)", () => {
+    let r = createScanRecord({ kind: "name", query: "Carlos" });
+    r = applyScanEvent(r, { scan: "node", id: "n0", kind: "name", value: "Carlos", label: "Carlos", parent_id: null });
+    r = applyScanEvent(r, { scan: "node", id: "n1", kind: "username", value: "carlos99", label: "carlos99", parent_id: "n0" });
+    r = applyScanEvent(r, { scan: "edge", src: "n0", dst: "n1", relation: "pivot", confidence: 0.8 });
+    r = applyScanEvent(r, { scan: "finding", provider: "ddg", source: "instagram", title: "@carlos", url: null, confidence: "high" });
+    r = applyScanEvent(r, { scan: "done", findings: 1, errors: 0, elapsed: 5000 });
+    const p = toSavePayload(r);
+    expect(p.root).toBe("n0");
+    expect(p.nodes.map((n) => n.id)).toEqual(["n0", "n1"]);
+    expect(p.edges).toHaveLength(1);
+    expect(p.scans).toHaveLength(1);
+    expect(p.scans[0].node).toBe("n0");
+    expect(p.scans[0].findings).toHaveLength(1);
+    expect(p.scans[0].elapsed_ms).toBe(5000);
+  });
+
+  it("sin eventos de grafo, cae al nodo sintético n0 (compat Fase 1)", () => {
+    let r = createScanRecord({ kind: "username", query: "carlos99" });
+    r = applyScanEvent(r, { scan: "done", findings: 0, errors: 0, elapsed: 100 });
+    const p = toSavePayload(r);
+    expect(p.root).toBe("n0");
+    expect(p.nodes).toEqual([{ id: "n0", kind: "username", value: "carlos99", label: "carlos99" }]);
+    expect(p.edges).toEqual([]);
+    expect(p.scans[0].node).toBe("n0");
+  });
+});

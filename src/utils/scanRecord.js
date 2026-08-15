@@ -8,6 +8,8 @@ export function createScanRecord({ kind, query } = {}) {
     query: query || "",
     findings: [],
     media: [],
+    nodes: [],
+    edges: [],
     ai_report: null,
     summary: null,
   };
@@ -49,13 +51,70 @@ export function applyScanEvent(record, entry) {
           elapsed: typeof entry.elapsed === "number" ? entry.elapsed : null,
         },
       };
+    case "node":
+      return {
+        ...record,
+        nodes: [
+          ...record.nodes,
+          {
+            id: entry.id,
+            kind: entry.kind,
+            value: entry.value,
+            label: entry.label,
+            parent_id: entry.parent_id ?? null,
+          },
+        ],
+      };
+    case "edge":
+      return {
+        ...record,
+        edges: [
+          ...record.edges,
+          {
+            src: entry.src,
+            dst: entry.dst,
+            relation: entry.relation,
+            confidence: entry.confidence ?? null,
+          },
+        ],
+      };
     default:
       return record;
   }
 }
 
-// Fase 1: un solo nodo raíz, sin edges ni descriptores faciales.
 export function toSavePayload(record) {
+  const scan = {
+    query: record.query,
+    findings: record.findings,
+    media: record.media,
+    ai_report: record.ai_report,
+    elapsed_ms: record.summary?.elapsed ?? null,
+  };
+
+  if (record.nodes.length) {
+    const root =
+      record.nodes.find((n) => !n.parent_id) || record.nodes[0];
+    return {
+      root: root.id,
+      nodes: record.nodes.map((n) => ({
+        id: n.id,
+        kind: n.kind,
+        value: n.value,
+        label: n.label,
+      })),
+      edges: record.edges.map((e) => ({
+        src: e.src,
+        dst: e.dst,
+        relation: e.relation,
+        confidence: e.confidence,
+      })),
+      scans: [{ node: root.id, ...scan }],
+      faces: [],
+    };
+  }
+
+  // Fallback (compat Fase 1): un solo nodo sintético raíz.
   const rootId = "n0";
   return {
     root: rootId,
@@ -63,16 +122,7 @@ export function toSavePayload(record) {
       { id: rootId, kind: record.kind, value: record.query, label: record.query },
     ],
     edges: [],
-    scans: [
-      {
-        node: rootId,
-        query: record.query,
-        findings: record.findings,
-        media: record.media,
-        ai_report: record.ai_report,
-        elapsed_ms: record.summary?.elapsed ?? null,
-      },
-    ],
+    scans: [{ node: rootId, ...scan }],
     faces: [],
   };
 }
