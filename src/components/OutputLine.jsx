@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import ScanEntry from "./ScanEntry";
 import VaultList from "./VaultList";
 import UsagePanel from "./UsagePanel";
+import DossierView from "./DossierView";
 
 // MapLibre es pesado: se carga bajo demanda solo al mostrar una ruta.
 const RouteMap = lazy(() => import("./RouteMap"));
@@ -18,6 +19,10 @@ export default function OutputLine({ entry, theme }) {
 
   if (entry.type === "vault") {
     return <VaultList data={entry.data} />;
+  }
+
+  if (entry.type === "dossier") {
+    return <DossierView data={entry.data} />;
   }
 
   if (entry.type === "usage") {
