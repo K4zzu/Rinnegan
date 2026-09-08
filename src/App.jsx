@@ -16,7 +16,7 @@ function Layout({ children }) {
           md:h-[90dvh]
           rounded-xl
           border border-[#c8ff2f]/25
-          shadow-[0_0_60px_rgba(139,92,246,0.12)]
+          shadow-[0_0_60px_rgba(200,255,47,0.12)]
           overflow-hidden
           relative
         "

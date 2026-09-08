@@ -6,7 +6,7 @@ import { useMemo } from "react";
 
 const KIND_COLOR = {
   name: "#c8ff2f",
-  username: "#f0abfc",
+  username: "#ff004d",
   email: "#34d399",
   phone: "#fbbf24",
   domain: "#38bdf8",
