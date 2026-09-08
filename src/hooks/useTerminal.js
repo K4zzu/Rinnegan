@@ -67,6 +67,10 @@ export function useTerminal() {
   const [statusText, setStatusText] = useState(null);
   // Progreso numérico para la barra HUD: { provider, checked, total } | null.
   const [scanProgress, setScanProgress] = useState(null);
+  // Estado en vivo del escaneo, para el panel de teatro (theater panel).
+  const [liveScan, setLiveScan] = useState({
+    status: "idle", kind: null, query: "", reasoning: [], findings: 0, providers: [], media: [], startedAt: null,
+  });
   // Control del stream SSE activo, para poder cancelarlo.
   const activeStreamRef = useRef(null);
   // Timers de la demo local (para poder cancelarla).
@@ -818,12 +822,16 @@ OSINT TERMINAL
 
     currentScanRef.current = createScanRecord({ kind, query: queryFallback });
     candidatePausedRef.current = false;
+    setLiveScan({
+      status: "running", kind, query: queryFallback, reasoning: [], findings: 0, providers: [], media: [], startedAt: Date.now(),
+    });
 
     const finish = () => {
       setIsProcessing(false);
       setStatusText(null);
       setScanProgress(null);
       activeStreamRef.current = null;
+      setLiveScan((s) => ({ ...s, status: "idle" }));
     };
 
     // Empuja al historial y a la vez acumula el evento en el registro guardable.
@@ -842,6 +850,7 @@ OSINT TERMINAL
           query: d?.query ?? queryFallback,
           providers: d?.providers ?? [],
         });
+        setLiveScan((s) => ({ ...s, providers: Array.from(new Set([...s.providers, ...(d?.providers || [])])) }));
       },
       progress: (d) => {
         if (!d) return;
@@ -865,6 +874,7 @@ OSINT TERMINAL
           url: d?.data?.url ?? null,
           confidence: d?.confidence ?? "low",
         });
+        setLiveScan((s) => ({ ...s, findings: s.findings + 1, providers: d?.provider ? Array.from(new Set([...s.providers, d.provider])) : s.providers }));
       },
       source_error: (d) => {
         sound.error();
@@ -879,6 +889,7 @@ OSINT TERMINAL
         if (!d?.items?.length) return;
         sound.finding("high");
         pushScan({ type: "scan", scan: "media", items: d.items });
+        setLiveScan((s) => ({ ...s, media: [...s.media, ...(d?.items || [])] }));
       },
       node: (d) => {
         if (!d) return;
@@ -914,6 +925,7 @@ OSINT TERMINAL
           thought: d.thought,
           action: d.action,
         });
+        setLiveScan((s) => ({ ...s, reasoning: [...s.reasoning, { step: d.step, thought: d.thought, action: d.action }] }));
       },
       candidate: (d) => {
         if (!d?.candidates?.length) return;
@@ -1074,6 +1086,7 @@ OSINT TERMINAL
     isProcessing,
     statusText,
     scanProgress,
+    liveScan,
     handleCommand,
     cancelActiveStream,
     runImageScan,
