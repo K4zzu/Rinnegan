@@ -89,6 +89,7 @@ export default function Terminal({ user, onLogout }) {
     handleCommand,
     cancelActiveStream,
     runImageScan,
+    pickCandidate,
   } = useTerminal();
 
   const fileInputRef = useRef(null);
@@ -373,7 +374,7 @@ export default function Terminal({ user, onLogout }) {
           )}
 
           {history.map((entry, index) => (
-            <OutputLine key={index} entry={entry} theme={theme} />
+            <OutputLine key={index} entry={entry} theme={theme} onPickCandidate={pickCandidate} />
           ))}
 
           {isProcessing && (

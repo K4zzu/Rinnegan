@@ -4,12 +4,13 @@ import ScanEntry from "./ScanEntry";
 import VaultList from "./VaultList";
 import UsagePanel from "./UsagePanel";
 import DossierView from "./DossierView";
+import CandidatePicker from "./CandidatePicker";
 
 // MapLibre es pesado: se carga bajo demanda solo al mostrar una ruta.
 const RouteMap = lazy(() => import("./RouteMap"));
 const GraphView = lazy(() => import("./GraphView"));
 
-export default function OutputLine({ entry, theme }) {
+export default function OutputLine({ entry, theme, onPickCandidate }) {
   const colors = theme?.colors || {};
 
   // Los eventos de un escaneo OSINT se renderizan con estética HUD.
@@ -23,6 +24,10 @@ export default function OutputLine({ entry, theme }) {
 
   if (entry.type === "dossier") {
     return <DossierView data={entry.data} />;
+  }
+
+  if (entry.type === "candidates") {
+    return <CandidatePicker items={entry.items} onPick={onPickCandidate} />;
   }
 
   if (entry.type === "usage") {
