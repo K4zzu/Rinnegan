@@ -135,6 +135,20 @@ export default function ScanEntry({ entry, theme }) {
         </div>
       );
 
+    case "reasoning":
+      return (
+        <div className="finding-in flex items-start gap-2 py-[2px] pl-2 border-l-2 text-[0.7rem] md:text-xs" style={{ borderColor: "#a78bfa" }}>
+          <span className="select-none text-fuchsia-300/80">◇</span>
+          <span className="text-white/40 shrink-0">paso {entry.step}</span>
+          <span className="min-w-0 flex-1">
+            <span className="text-white/80">{entry.thought}</span>
+            {entry.action ? (
+              <span className="text-fuchsia-300/70"> → {entry.action}</span>
+            ) : null}
+          </span>
+        </div>
+      );
+
     case "done":
       return (
         <div className="scan-done mt-1 mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 pt-1 text-[0.65rem] uppercase tracking-wider">
