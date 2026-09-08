@@ -181,6 +181,9 @@ const SSE_EVENTS = [
   "ai_report",
   "node",
   "edge",
+  "reasoning",
+  "candidate",
+  "dossier",
   "done",
 ];
 
@@ -242,6 +245,17 @@ export function streamOsintGraph(value, kind, handlers = {}) {
   const url = new URL("/osint/graph/stream", BASE_URL);
   url.searchParams.set("value", value);
   if (kind) url.searchParams.set("kind", kind);
+  return openEventStream(url, handlers);
+}
+
+/**
+ * Agente de investigación: bucle agéntico backend. Además de los eventos
+ * normales emite `reasoning`, `candidate` y `dossier`.
+ */
+export function streamInvestigate(seed, hint, handlers = {}) {
+  const url = new URL("/investigate/stream", BASE_URL);
+  url.searchParams.set("seed", seed);
+  if (hint) url.searchParams.set("hint", hint);
   return openEventStream(url, handlers);
 }
 

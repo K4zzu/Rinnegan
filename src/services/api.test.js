@@ -1,6 +1,6 @@
 // src/services/api.test.js
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { whoami, streamOsint, streamOsintGraph, saveVault, getVaultGraph, deleteVaultNode, facesMatch, getUsage } from "./api";
+import { whoami, streamOsint, streamOsintGraph, streamInvestigate, saveVault, getVaultGraph, deleteVaultNode, facesMatch, getUsage } from "./api";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -132,6 +132,27 @@ describe("streamOsintGraph", () => {
     FakeEventSource.last.emit("edge", JSON.stringify({ src: "n0", dst: "n1", relation: "pivot" }));
     expect(node).toHaveBeenCalledWith({ id: "n0", kind: "name", value: "Carlos", parent_id: null });
     expect(edge).toHaveBeenCalledWith({ src: "n0", dst: "n1", relation: "pivot" });
+  });
+});
+
+describe("streamInvestigate", () => {
+  beforeEach(() => vi.stubGlobal("EventSource", FakeEventSource));
+
+  it("abre /investigate/stream con seed y hint, y despacha los eventos nuevos", () => {
+    const reasoning = vi.fn();
+    const candidate = vi.fn();
+    const dossier = vi.fn();
+    streamInvestigate("Thiago Navarro", "hijo de rectora", { reasoning, candidate, dossier });
+    expect(FakeEventSource.last.url).toContain("/investigate/stream");
+    expect(FakeEventSource.last.url).toContain("seed=Thiago+Navarro");
+    expect(FakeEventSource.last.url).toContain("hint=hijo+de+rectora");
+
+    FakeEventSource.last.emit("reasoning", JSON.stringify({ step: 1, thought: "t", action: "a" }));
+    FakeEventSource.last.emit("candidate", JSON.stringify({ candidates: [{ id: "c1", name: "X" }] }));
+    FakeEventSource.last.emit("dossier", JSON.stringify({ identity: { name: "X" } }));
+    expect(reasoning).toHaveBeenCalledWith({ step: 1, thought: "t", action: "a" });
+    expect(candidate).toHaveBeenCalledWith({ candidates: [{ id: "c1", name: "X" }] });
+    expect(dossier).toHaveBeenCalledWith({ identity: { name: "X" } });
   });
 });
 
