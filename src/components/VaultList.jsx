@@ -24,7 +24,7 @@ export default function VaultList({ data }) {
 
   return (
     <div className="ai-reveal my-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
-      <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-fuchsia-300/80">
+      <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-[#ff004d]/80">
         <span>◈</span>
         <span>Bóveda · {nodes.length} objetivo{nodes.length === 1 ? "" : "s"}</span>
         <span className="h-px flex-1 bg-current/20" />

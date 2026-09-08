@@ -5,8 +5,8 @@
 import { useMemo } from "react";
 
 const KIND_COLOR = {
-  name: "#a78bfa",
-  username: "#f0abfc",
+  name: "#c8ff2f",
+  username: "#ff004d",
   email: "#34d399",
   phone: "#fbbf24",
   domain: "#38bdf8",
@@ -87,7 +87,7 @@ export default function GraphView({ data }) {
 
   return (
     <div className="ai-reveal my-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
-      <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-fuchsia-300/80">
+      <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-[#ff004d]/80">
         <span>◇</span>
         <span>Grafo · {nodes.length} nodo{nodes.length === 1 ? "" : "s"}</span>
         <span className="h-px flex-1 bg-current/20" />
@@ -111,7 +111,7 @@ export default function GraphView({ data }) {
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                stroke="#a78bfa55"
+                stroke="#c8ff2f55"
                 strokeWidth="1"
               />
             );

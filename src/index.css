@@ -21,8 +21,8 @@ body,
 
 /* Fondo base: negro con tinte violeta (fósforo/CRT). */
 body {
-  background-color: #08060d;
-  color: #bbf7d0;
+  background-color: #0b0b0d; /* base grunge DedSec */
+  color: #c8ff2f; /* verde ácido */
   overflow-x: hidden; /* evita scroll horizontal en móvil */
 }
 
@@ -163,8 +163,8 @@ body::after {
   width: 100%;
   height: 100%;
   overflow: visible;
-  color: #a855f7; /* acento violeta por defecto; se puede sobreescribir */
-  filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+  color: #c8ff2f; /* acento verde ácido DedSec por defecto; se puede sobreescribir */
+  filter: drop-shadow(0 0 3px rgba(200, 255, 47, 0.45));
 }
 .godeye [class^="ge-"] {
   transform-box: view-box;
@@ -213,23 +213,23 @@ body::after {
   animation: ge-breathe 4s ease-in-out infinite;
 }
 .ge-core {
-  fill: #f0abfc;
+  fill: #00e5ff;
   stroke: none;
 }
 .ge-sweep {
   opacity: 0;
 }
 .ge-sweep line {
-  stroke: #e879f9;
+  stroke: #ff004d;
   stroke-width: 1.6;
-  filter: drop-shadow(0 0 4px rgba(232, 121, 249, 0.8));
+  filter: drop-shadow(0 0 4px rgba(255, 0, 77, 0.8));
 }
 .ge-reticle {
   opacity: 0;
-  color: #e879f9;
+  color: #ff004d;
 }
 .ge-reticle path {
-  stroke: #e879f9;
+  stroke: #ff004d;
   stroke-width: 2;
   fill: none;
 }
@@ -270,13 +270,13 @@ body::after {
 }
 @keyframes ge-lock-flash {
   0% {
-    filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+    filter: drop-shadow(0 0 3px rgba(200, 255, 47, 0.45));
   }
   30% {
-    filter: drop-shadow(0 0 14px rgba(232, 121, 249, 1));
+    filter: drop-shadow(0 0 14px rgba(255, 0, 77, 1));
   }
   100% {
-    filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+    filter: drop-shadow(0 0 3px rgba(200, 255, 47, 0.45));
   }
 }
 
@@ -295,7 +295,7 @@ body::after {
   opacity: 0.7;
 }
 .godeye[data-state="scanning"] {
-  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.75));
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.75));
 }
 
 /* Estado: objetivo fijado → aparece el retículo y destella. */
@@ -374,4 +374,42 @@ body::after {
   .route-marker--est {
     animation: none !important;
   }
+}
+
+/* ── DedSec: glitch / scanlines / grunge ─────────────────────────────────── */
+.ds-neon { text-shadow: 0 0 6px currentColor; }
+.ds-glitch { text-shadow: 2px 0 #ff004d, -2px 0 #00e5ff; }
+.ds-glitch-anim { animation: ds-glitch 2.2s steps(2) infinite; }
+@keyframes ds-glitch {
+  0%, 92%, 100% { transform: translate(0, 0); text-shadow: 2px 0 #ff004d, -2px 0 #00e5ff; }
+  93% { transform: translate(-1px, 1px); text-shadow: -3px 0 #ff004d, 3px 0 #00e5ff; }
+  96% { transform: translate(1px, -1px); text-shadow: 3px 0 #00e5ff, -3px 0 #ff004d; }
+}
+.ds-scanlines { position: relative; }
+.ds-scanlines::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.28) 2px 3px);
+  mix-blend-mode: overlay;
+}
+.ds-grunge {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 6px, transparent 6px 12px);
+}
+.ds-sweep { position: relative; overflow: hidden; }
+.ds-sweep::before {
+  content: ""; position: absolute; left: 0; right: 0; height: 2px; top: 0;
+  background: #c8ff2f; box-shadow: 0 0 8px #c8ff2f;
+  animation: ds-sweep-move 1.6s ease-in-out infinite;
+}
+@keyframes ds-sweep-move { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+.datamosh-in { animation: datamosh-in 0.32s steps(3) both; }
+@keyframes datamosh-in {
+  0% { opacity: 0; transform: translateX(-4px) skewX(6deg); filter: hue-rotate(40deg); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-glitch-anim { animation: none; }
+  .ds-sweep::before { animation: none; opacity: 0.5; }
+  .datamosh-in { animation: none; }
 }

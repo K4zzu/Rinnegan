@@ -39,10 +39,10 @@ export default function ScanEntry({ entry, theme }) {
   switch (entry.scan) {
     case "start":
       return (
-        <div className="relative overflow-hidden my-1 py-1 pl-2 border-y border-white/10">
+        <div className="relative overflow-hidden my-1 py-1 pl-2 border-y border-white/10 ds-sweep">
           <span className="hud-sweep" aria-hidden="true" />
           <div className={`relative flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${accentText}`}>
-            <span className="font-bold tracking-widest">▸ SCAN</span>
+            <span className="font-bold tracking-widest ds-glitch">▸ SCAN</span>
             <span className="uppercase opacity-70">{entry.kind}</span>
             <span className="text-white/90">&quot;{entry.query}&quot;</span>
             {entry.providers?.length ? <span className="opacity-40">·</span> : null}
@@ -137,13 +137,13 @@ export default function ScanEntry({ entry, theme }) {
 
     case "reasoning":
       return (
-        <div className="finding-in flex items-start gap-2 py-[2px] pl-2 border-l-2 text-[0.7rem] md:text-xs" style={{ borderColor: "#a78bfa" }}>
-          <span className="select-none text-fuchsia-300/80">◇</span>
+        <div className="finding-in flex items-start gap-2 py-[2px] pl-2 border-l-2 text-[0.7rem] md:text-xs" style={{ borderColor: "#ff004d" }}>
+          <span className="select-none text-[#ff004d]/80">◇</span>
           <span className="text-white/40 shrink-0">paso {entry.step}</span>
           <span className="min-w-0 flex-1">
             <span className="text-white/80">{entry.thought}</span>
             {entry.action ? (
-              <span className="text-fuchsia-300/70"> → {entry.action}</span>
+              <span className="text-[#ff004d]/70"> → {entry.action}</span>
             ) : null}
           </span>
         </div>

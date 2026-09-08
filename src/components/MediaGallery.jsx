@@ -163,7 +163,7 @@ function FaceSummary({ face, count }) {
 
   if (face.status === "loading")
     return (
-      <div className="mt-2 flex items-center gap-2 text-[0.7rem] text-fuchsia-300/70">
+      <div className="mt-2 flex items-center gap-2 text-[0.7rem] text-[#ff004d]/70">
         <span className="animate-pulse">◉</span> analizando rostros…
       </div>
     );
@@ -189,7 +189,7 @@ function FaceSummary({ face, count }) {
 
   return (
     <div className="mt-2 text-[0.72rem] leading-relaxed">
-      <span className="text-fuchsia-400">◉ análisis facial · </span>
+      <span className="text-[#ff004d]">◉ análisis facial · </span>
       <span className="text-emerald-300 font-semibold">{dominantCount}</span>
       <span className="text-white/70"> de {facesFound} fotos con cara son la misma persona → </span>
       <span className="font-bold text-emerald-300">{probability}%</span>

@@ -93,42 +93,41 @@ export const sound = {
     audioCtx();
   },
 
-  // Encendido: barrido grave→agudo filtrado (power-up).
+  // Encendido: barrido corto grave→agudo tipo glitch burst (power-up áspero).
   boot() {
     if (!enabled) return;
-    voice({ freq: 90, slideTo: 520, type: "sawtooth", dur: 0.5, gain: 0.05, filter: { freq: 900 } });
-    voice({ freq: 180, slideTo: 1040, type: "sine", dur: 0.5, gain: 0.03, t0: 0.02 });
+    voice({ freq: 90, slideTo: 640, type: "sawtooth", dur: 0.28, gain: 0.05, filter: { freq: 900 } });
+    voice({ freq: 180, slideTo: 1200, type: "square", dur: 0.22, gain: 0.025, t0: 0.02 });
   },
 
-  // Inicio de escaneo: ping de sónar (con eco corto).
+  // Inicio de escaneo: barrido de frecuencia corto (glitch burst) en vez de ping de sónar.
   scanStart() {
     if (!enabled) return;
-    voice({ freq: 880, type: "sine", dur: 0.22, gain: 0.05, filter: { freq: 2200 } });
-    voice({ freq: 880, type: "sine", dur: 0.3, gain: 0.02, t0: 0.16 });
-    voice({ freq: 1320, type: "sine", dur: 0.18, gain: 0.015, t0: 0.05 });
+    voice({ freq: 220, slideTo: 1760, type: "sawtooth", dur: 0.09, gain: 0.045, filter: { freq: 2600 } });
+    voice({ freq: 440, slideTo: 1320, type: "square", dur: 0.07, gain: 0.02, t0: 0.05 });
   },
 
-  // Hallazgo: blip corto, tono según confianza + armónico sutil.
+  // Hallazgo: blip corto y áspero, tono según confianza + armónico sutil.
   finding(confidence) {
     if (!enabled) return;
     const base =
       confidence === "high" ? 940 : confidence === "medium" ? 680 : 500;
-    voice({ freq: base, type: "sine", dur: 0.06, gain: 0.035 });
-    voice({ freq: base * 2, type: "sine", dur: 0.045, gain: 0.01, detune: 4 });
+    voice({ freq: base, type: "square", dur: 0.06, gain: 0.03 });
+    voice({ freq: base * 2, type: "sawtooth", dur: 0.045, gain: 0.008, detune: 4 });
   },
 
-  // Error: golpe grave y seco.
+  // Error: golpe grave, seco y distorsionado.
   error() {
     if (!enabled) return;
-    voice({ freq: 150, slideTo: 90, type: "triangle", dur: 0.16, gain: 0.045, filter: { freq: 500 } });
+    voice({ freq: 150, slideTo: 90, type: "sawtooth", dur: 0.16, gain: 0.045, filter: { freq: 500 } });
   },
 
-  // Objetivo fijado (identidad resuelta): dos tonos ascendentes + núcleo.
+  // Objetivo fijado (identidad resuelta): dos tonos ascendentes + núcleo, más ásperos.
   lock() {
     if (!enabled) return;
-    voice({ freq: 523, type: "sine", dur: 0.12, gain: 0.04 });
-    voice({ freq: 784, type: "sine", dur: 0.16, gain: 0.045, t0: 0.1 });
-    voice({ freq: 1568, type: "sine", dur: 0.22, gain: 0.02, t0: 0.12 });
+    voice({ freq: 523, type: "square", dur: 0.12, gain: 0.035 });
+    voice({ freq: 784, type: "square", dur: 0.16, gain: 0.04, t0: 0.1 });
+    voice({ freq: 1568, type: "sawtooth", dur: 0.22, gain: 0.018, t0: 0.12 });
   },
 
   // Fin de escaneo: acorde resuelto (quinta).

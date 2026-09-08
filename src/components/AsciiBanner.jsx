@@ -97,7 +97,7 @@ export default function AsciiBanner({ className = "", banner, animate = true }) 
       aria-hidden="true"
       className={
         "text-[9px] leading-[10px] md:text-xs md:leading-4 mb-3 select-none " +
-        "max-w-full overflow-x-auto " +
+        "max-w-full overflow-x-auto ds-scanlines ds-neon " +
         className
       }
     >

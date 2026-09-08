@@ -75,8 +75,8 @@ export default function PromptLine({ value, onChange, onKeyDown, inputRef, theme
           title={listening ? "Escuchando… clic para detener" : "Dictar por voz"}
           className={`ml-2 shrink-0 rounded-full border p-1.5 transition ${
             listening
-              ? "border-fuchsia-400/70 text-fuchsia-300 bg-fuchsia-500/10 animate-pulse shadow-[0_0_10px_rgba(232,121,249,0.5)]"
-              : "border-white/15 text-violet-300/70 hover:text-violet-200 hover:border-violet-400/50"
+              ? "border-[#ff004d]/70 text-[#ff004d] bg-[#ff004d]/10 animate-pulse motion-reduce:animate-none shadow-[0_0_10px_rgba(255,0,77,0.5)]"
+              : "border-white/15 text-[#c8ff2f]/70 hover:text-[#c8ff2f] hover:border-[#c8ff2f]/50"
           }`}
         >
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">

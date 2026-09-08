@@ -73,25 +73,23 @@ export const THEMES = {
         Rinnegan OSINT Terminal Tool
 `,
     colors: {
-      headerText: "text-purple-300/80",
-      headerSubText: "text-purple-400/80",
-      headerMetricsText: "text-purple-400/60",
-      netBar: "bg-purple-500/80",
+      headerText: "text-[#c8ff2f]/70",
+      headerSubText: "text-[#c8ff2f]/80",
+      headerMetricsText: "text-[#c8ff2f]/60",
+      netBar: "bg-[#c8ff2f]/80",
 
-      bannerText: "text-purple-400/90",
-      bodyText: "text-purple-100",
+      bannerText: "text-[#c8ff2f]",
+      bodyText: "text-[#c8ff2f]/90",
 
-      promptUser: "text-purple-300",
-      promptPath: "text-purple-500",
-      promptSymbol: "text-purple-300",
+      promptUser: "text-[#ff004d]",
+      promptPath: "text-[#c8ff2f]/60",
+      promptSymbol: "text-[#c8ff2f]",
 
-      // typing
-      commandInput: "text-purple-400",
-      // history
-      commandHistory: "text-purple-400",
+      commandInput: "text-[#c8ff2f]",
+      commandHistory: "text-[#c8ff2f]",
 
-      outputText: "text-purple-200",
-      errorText: "text-red-400",
+      outputText: "text-[#c8ff2f]/80",
+      errorText: "text-[#ff004d]",
     },
   },
 
