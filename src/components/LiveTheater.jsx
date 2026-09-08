@@ -2,13 +2,28 @@
 // Panel-teatro en vivo (consola dividida DedSec): mientras corre un escaneo,
 // muestra el razonamiento en streaming (izq), las caras + contadores (der) y
 // los providers activos (abajo). Puramente presentacional sobre `liveScan`.
+import { useEffect, useState } from "react";
 import GodEye from "./GodEye";
 
 export default function LiveTheater({ liveScan, statusText }) {
+  const running = liveScan?.status === "running";
+  const startedAt = liveScan?.startedAt;
+  const [now, setNow] = useState(() => Date.now());
+
+  // Contador de tiempo transcurrido: se refresca cada segundo mientras corre.
+  useEffect(() => {
+    if (!running || !startedAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [running, startedAt]);
+
   if (!liveScan || liveScan.status !== "running") return null;
   const { reasoning = [], findings = 0, providers = [], media = [] } = liveScan;
   const lastReasoning = reasoning.slice(-5);
   const lastMedia = media.slice(-4);
+  const elapsed = startedAt
+    ? Math.max(0, Math.floor((now - Number(new Date(startedAt))) / 1000))
+    : null;
 
   return (
     <div className="ds-grunge ds-scanlines datamosh-in my-2 rounded-md border border-[#c8ff2f]/25 bg-[#0b0b0d]/80 p-3">
@@ -16,7 +31,7 @@ export default function LiveTheater({ liveScan, statusText }) {
         <span className="h-4 w-4 shrink-0"><GodEye state="scanning" /></span>
         <span className="ds-glitch font-bold">RINNEGAN</span>
         <span className="text-white/40">// {liveScan.kind}</span>
-        <span className="ml-auto text-[#ff004d] animate-pulse">■ EN VIVO</span>
+        <span className="ml-auto text-[#ff004d] animate-pulse motion-reduce:animate-none">■ EN VIVO</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.1fr_1fr]">
@@ -26,13 +41,13 @@ export default function LiveTheater({ liveScan, statusText }) {
           {lastReasoning.length ? (
             lastReasoning.map((r, i) => (
               <div key={i} className="datamosh-in truncate">
-                <span className="text-[#ff2bd6]">◇ {r.step}</span>{" "}
+                <span className="text-[#ff004d]">◇ {r.step}</span>{" "}
                 <span className="text-white/80">{r.thought}</span>
                 {r.action ? <span className="text-[#00e5ff]"> → {r.action}</span> : null}
               </div>
             ))
           ) : (
-            <div className="text-white/40 animate-pulse">{statusText || "procesando…"}</div>
+            <div className="text-white/40 animate-pulse motion-reduce:animate-none">{statusText || "procesando…"}</div>
           )}
         </div>
 
@@ -50,6 +65,9 @@ export default function LiveTheater({ liveScan, statusText }) {
           <div className="mt-2 flex gap-3 text-[0.6rem]">
             <span><span className="text-[#c8ff2f] text-sm font-bold">{findings}</span> hallazgos</span>
             <span><span className="text-[#00e5ff] text-sm font-bold">{providers.length}</span> providers</span>
+            {elapsed != null ? (
+              <span><span className="text-[#c8ff2f] text-sm font-bold">{elapsed}s</span> tiempo</span>
+            ) : null}
           </div>
         </div>
       </div>

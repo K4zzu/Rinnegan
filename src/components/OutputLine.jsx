@@ -38,7 +38,7 @@ export default function OutputLine({ entry, theme, onPickCandidate }) {
     return (
       <Suspense
         fallback={
-          <div className="my-2 text-xs text-violet-300/60">[grafo] dibujando…</div>
+          <div className="my-2 text-xs text-[#c8ff2f]/60">[grafo] dibujando…</div>
         }
       >
         <GraphView data={entry.data} />
@@ -51,7 +51,7 @@ export default function OutputLine({ entry, theme, onPickCandidate }) {
     return (
       <Suspense
         fallback={
-          <div className="my-2 text-xs text-violet-300/60">
+          <div className="my-2 text-xs text-[#c8ff2f]/60">
             [ruta] cargando mapa…
           </div>
         }

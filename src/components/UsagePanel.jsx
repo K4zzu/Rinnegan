@@ -12,7 +12,7 @@ export default function UsagePanel({ data }) {
 
   return (
     <div className="ai-reveal my-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
-      <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-fuchsia-300/80">
+      <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-[#ff004d]/80">
         <span>◭</span>
         <span>Cuotas y costo · {data?.period === "day" ? "hoy" : "este mes"}</span>
         <span className="h-px flex-1 bg-current/20" />
@@ -33,7 +33,7 @@ export default function UsagePanel({ data }) {
               {pct != null ? (
                 <div className="mt-1 h-1 w-full overflow-hidden rounded bg-white/10">
                   <div
-                    className="h-full rounded bg-fuchsia-400/70"
+                    className="h-full rounded bg-[#c8ff2f]/70"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

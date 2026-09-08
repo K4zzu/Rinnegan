@@ -107,6 +107,7 @@ export function useTerminal() {
     setIsProcessing(false);
     setStatusText(null);
     setScanProgress(null);
+    setLiveScan((s) => ({ ...s, status: "idle" }));
     pushToHistory({ type: "error", text: "^C escaneo cancelado." });
   };
 

@@ -19,8 +19,8 @@ export default function DossierView({ data }) {
   const pct = typeof id?.confidence === "number" ? Math.round(id.confidence * 100) : null;
 
   return (
-    <div className="ai-reveal my-2 rounded-md border border-fuchsia-400/20 bg-white/[0.02] p-3">
-      <div className="mb-1 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-fuchsia-300/90">
+    <div className="ai-reveal my-2 rounded-md border border-[#ff004d]/20 bg-white/[0.02] p-3">
+      <div className="mb-1 flex items-center gap-2 text-[0.7rem] uppercase tracking-widest text-[#ff004d]/90">
         <span>◉</span>
         <span>Dossier</span>
         <span className="h-px flex-1 bg-current/20" />
@@ -32,7 +32,7 @@ export default function DossierView({ data }) {
           {id.name}
           {pct != null ? <span className="ml-2 text-[0.7rem] text-emerald-300">{pct}% confianza</span> : null}
           {id.verified_by ? (
-            <a href={id.verified_by} target="_blank" rel="noreferrer" className="ml-2 text-[0.6rem] text-fuchsia-300/70 underline decoration-dotted">fuente</a>
+            <a href={id.verified_by} target="_blank" rel="noreferrer" className="ml-2 text-[0.6rem] text-[#00e5ff]/70 underline decoration-dotted">fuente</a>
           ) : null}
         </div>
       ) : (
@@ -79,9 +79,9 @@ export default function DossierView({ data }) {
           <ul className="space-y-0.5">
             {d.family.map((f, i) => (
               <li key={i}>
-                <span className="text-fuchsia-300/80">{f.relation}</span>: <span className="text-white/90">{f.name}</span>
+                <span className="text-[#ff004d]/80">{f.relation}</span>: <span className="text-white/90">{f.name}</span>
                 {f.note ? <span className="text-white/50"> — {f.note}</span> : null}
-                {f.url ? <a href={f.url} target="_blank" rel="noreferrer" className="ml-1 text-[0.6rem] text-fuchsia-300/70 underline decoration-dotted">fuente</a> : null}
+                {f.url ? <a href={f.url} target="_blank" rel="noreferrer" className="ml-1 text-[0.6rem] text-[#00e5ff]/70 underline decoration-dotted">fuente</a> : null}
               </li>
             ))}
           </ul>

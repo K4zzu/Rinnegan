@@ -97,19 +97,19 @@ export default function RouteMap({ data }) {
         type: "geojson",
         data: { type: "Feature", geometry: data.geometry },
       });
-      // Glow + línea principal (violeta).
+      // Glow + línea principal (verde).
       map.addLayer({
         id: "route-glow",
         type: "line",
         source: "route",
-        paint: { "line-color": "#a855f7", "line-width": 9, "line-blur": 8, "line-opacity": 0.5 },
+        paint: { "line-color": "#c8ff2f", "line-width": 9, "line-blur": 8, "line-opacity": 0.5 },
         layout: { "line-cap": "round", "line-join": "round" },
       });
       map.addLayer({
         id: "route-line",
         type: "line",
         source: "route",
-        paint: { "line-color": "#e879f9", "line-width": 2.5 },
+        paint: { "line-color": "#c8ff2f", "line-width": 2.5 },
         layout: { "line-cap": "round", "line-join": "round" },
       });
 
@@ -182,7 +182,7 @@ export default function RouteMap({ data }) {
   return (
     <div className="ai-reveal my-2 overflow-hidden rounded-md border border-white/10 bg-white/[0.02]">
       {/* Encabezado HUD */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-[0.7rem] uppercase tracking-widest text-violet-300">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-[0.7rem] uppercase tracking-widest text-[#c8ff2f]">
         <span>◎ ruta</span>
         <span className="text-white/80">{data.mode_label}</span>
         <span className="opacity-60">{km} km</span>
@@ -197,8 +197,8 @@ export default function RouteMap({ data }) {
       <div className="relative">
         <div ref={containerRef} className="h-[320px] w-full" />
         {/* Chip de tracking sobre el mapa */}
-        <div className="pointer-events-none absolute left-2 bottom-2 rounded bg-black/70 px-2 py-1 text-[0.65rem] text-violet-200 backdrop-blur">
-          <span className="text-fuchsia-400">◉</span> posición estimada ·{" "}
+        <div className="pointer-events-none absolute left-2 bottom-2 rounded bg-black/70 px-2 py-1 text-[0.65rem] text-[#c8ff2f] backdrop-blur">
+          <span className="text-[#ff004d]">◉</span> posición estimada ·{" "}
           {status.pct}% · {status.label}
         </div>
       </div>
