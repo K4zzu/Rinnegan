@@ -11,7 +11,7 @@ export default function GodEye({ state = "idle", className = "", style }) {
   return (
     <svg
       viewBox="0 0 100 100"
-      className={`godeye ${className}`}
+      className={`godeye ${className} ${state === "scanning" ? "ds-glitch-anim" : ""} ds-neon`}
       data-state={state}
       style={style}
       aria-hidden="true"

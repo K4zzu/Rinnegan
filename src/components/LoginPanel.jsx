@@ -44,24 +44,24 @@ export default function LoginPanel({ onAuthed }) {
   };
 
   const field =
-    "w-full rounded-sm border border-violet-500/30 bg-black/40 px-2 py-1.5 text-violet-100 outline-none focus:border-fuchsia-400/70 focus:shadow-[0_0_8px_rgba(232,121,249,0.25)] transition";
+    "w-full rounded-sm border border-[#c8ff2f]/30 bg-black/40 px-2 py-1.5 text-[#c8ff2f] outline-none focus:border-[#00e5ff]/70 focus:shadow-[0_0_8px_rgba(0,229,255,0.25)] transition";
   const labelCls =
-    "mb-1 block text-[0.65rem] text-violet-300/60 uppercase tracking-[0.2em]";
+    "mb-1 block text-[0.65rem] text-[#c8ff2f]/60 uppercase tracking-[0.2em]";
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center overflow-y-auto p-4 font-mono text-violet-200">
+    <div className="h-full w-full flex flex-col items-center justify-center overflow-y-auto p-4 font-mono text-[#c8ff2f]">
       {/* Arte ASCII del ojo Rinnegan, con el efecto de desencriptado */}
-      <AsciiBanner className="phosphor text-violet-400/90 mb-1" />
-      <div className="phosphor text-violet-300 tracking-[0.5em] text-xl mb-1">
+      <AsciiBanner className="phosphor text-[#c8ff2f]/90 mb-1" />
+      <div className="phosphor text-[#c8ff2f] tracking-[0.5em] text-xl mb-1 ds-glitch">
         RINNEGAN
       </div>
-      <p className="text-[0.65rem] text-violet-300/40 tracking-widest uppercase mb-5">
+      <p className="text-[0.65rem] text-[#c8ff2f]/40 tracking-widest uppercase mb-5">
         all-source intelligence
       </p>
 
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-xs rounded-md border border-violet-500/30 bg-violet-500/[0.03] p-5 shadow-[0_0_40px_rgba(139,92,246,0.08)]"
+        className="w-full max-w-xs rounded-md border border-[#c8ff2f]/30 bg-[#c8ff2f]/[0.03] p-5 shadow-[0_0_40px_rgba(200,255,47,0.08)]"
       >
         <label className="mb-3 block">
           <span className={labelCls}>usuario</span>
@@ -103,7 +103,7 @@ export default function LoginPanel({ onAuthed }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-sm border border-violet-400/50 bg-violet-500/10 py-2 text-sm uppercase tracking-[0.25em] text-violet-200 hover:bg-violet-500/20 hover:shadow-[0_0_14px_rgba(139,92,246,0.35)] transition disabled:opacity-50"
+          className="w-full rounded-sm border border-[#c8ff2f]/50 bg-[#c8ff2f]/10 py-2 text-sm uppercase tracking-[0.25em] text-[#c8ff2f] hover:bg-[#c8ff2f]/20 hover:shadow-[0_0_14px_rgba(255,0,77,0.35)] transition disabled:opacity-50"
         >
           {loading ? "abriendo el ojo…" : isRegister ? "registrarse" : "entrar"}
         </button>
@@ -114,7 +114,7 @@ export default function LoginPanel({ onAuthed }) {
             setMode(isRegister ? "login" : "register");
             setError("");
           }}
-          className="mt-3 w-full text-center text-[0.7rem] text-violet-300/50 hover:text-violet-200"
+          className="mt-3 w-full text-center text-[0.7rem] text-[#c8ff2f]/50 hover:text-[#c8ff2f]"
         >
           {isRegister
             ? "¿ya tienes cuenta? inicia sesión"

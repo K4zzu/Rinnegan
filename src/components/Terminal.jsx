@@ -306,7 +306,7 @@ export default function Terminal({ user, onLogout }) {
           <span className={`ml-2 h-5 w-5 shrink-0 ${colors.bannerText || "text-green-400/90"}`}>
             <GodEye state={eyeState} />
           </span>
-          <span className={`phosphor font-semibold tracking-[0.3em] ${colors.bannerText || "text-green-400/90"}`}>
+          <span className={`phosphor font-semibold tracking-[0.3em] ds-glitch ${colors.bannerText || "text-green-400/90"}`}>
             RINNEGAN
           </span>
           <span className="ml-1 truncate opacity-50">· {theme.label}</span>
