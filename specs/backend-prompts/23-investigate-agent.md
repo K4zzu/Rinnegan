@@ -48,5 +48,18 @@ Nunca 500. Fallo de IA/proveedor → emite `dossier` con `note:"no concluyente"`
 2. El `done` incluye `cost` (usa el tracking de usage). Tras `candidate` viene `done`.
 3. Protegido (401 sin token); nunca 500. Tests + `ruff` + README.
 
+## Extiende `/interpret` con la acción `investigate`
+
+El endpoint `/interpret` (del prompt 17) debe ganar una acción nueva para que la entrada en lenguaje natural dispare este agente:
+
+- Si el usuario pide **investigar / averiguar quién es una persona** dando un identificador + una descripción o pista (ej. "investiga a Thiago Andrés Navarro, es hijo de la rectora de una universidad", "averigua quién es X"), clasifica como:
+  ```json
+  { "action": "investigate", "seed": "<persona/identificador>", "hint": "<la pista/descripción, o cadena vacía>" }
+  ```
+- Distíngue de `osint` (escaneo simple de un identificador, sin pista ni intención de investigación profunda). Ante la duda entre `osint` e `investigate`: si hay una descripción/pista o una intención clara de "quién es", usa `investigate`.
+- Actualiza el prompt del modelo de `/interpret` y sus tests (OpenAI mockeado) para la nueva acción.
+
+Esta es la ÚNICA excepción a "no cambies los otros endpoints": `/interpret` sí se extiende con la acción `investigate`.
+
 ## NO hagas
 - No cambies el modelo del reporte simple de escaneos (sigue `gpt-4o-mini`). No hagas saltos ilimitados (respeta el presupuesto). No inventes datos. No expongas keys.
