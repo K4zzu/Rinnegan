@@ -37,6 +37,15 @@ export function parseCommand(input) {
     };
   }
 
+  // --- Comando investigar (texto libre: persona · pista) ---
+  if (first === "investigar") {
+    return {
+      command: "investigar",
+      args: parts.slice(1),
+      category: "core",
+    };
+  }
+
   // --- Comando theme ---
   // theme list
   // theme <id>

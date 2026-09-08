@@ -5,6 +5,7 @@ import {
   streamOsint,
   streamOsintGraph,
   streamOsintImage,
+  streamInvestigate,
   planRoute,
   interpret,
   saveVault,
@@ -48,7 +49,7 @@ const EXPLICIT_SINGLE = [
   "cuotas",
   "uso",
 ];
-const EXPLICIT_PREFIX = ["osint", "ruta", "route", "theme", "sound"];
+const EXPLICIT_PREFIX = ["osint", "ruta", "route", "theme", "sound", "investigar"];
 
 function isExplicitCommand(input) {
   const parts = input.trim().split(/\s+/);
@@ -73,6 +74,7 @@ export function useTerminal() {
   // Registro del escaneo en curso (para poder archivarlo) y la pregunta pendiente.
   const currentScanRef = useRef(null);
   const pendingSaveRef = useRef(null);
+  const candidatePausedRef = useRef(false);
 
   const pushToHistory = (entry) => {
     setHistory((prev) => [...prev, entry]);
@@ -186,6 +188,17 @@ export function useTerminal() {
       return;
     }
 
+    if (command === "investigar") {
+      const raw = args.join(" ");
+      const [seed, hint] = raw.split("·").map((s) => s.trim());
+      if (!seed) {
+        pushToHistory({ type: "error", text: "Uso: investigar <persona> · <pista opcional>" });
+      } else {
+        handleInvestigate(seed, hint || "");
+      }
+      return;
+    }
+
     if (command === "demo") {
       handleDemo();
       return;
@@ -288,6 +301,20 @@ export function useTerminal() {
     });
   };
 
+  const handleInvestigate = (seed, hint) => {
+    beginScan((handlers) => streamInvestigate(seed, hint, handlers), {
+      kind: "investigate",
+      queryFallback: seed,
+    });
+  };
+
+  // Al elegir un candidato, re-lanza la investigación sembrada con esa identidad.
+  const pickCandidate = (candidate) => {
+    if (!candidate?.name) return;
+    pushToHistory({ type: "input", text: `investigar ${candidate.name} (confirmado)` });
+    handleInvestigate(candidate.name, `identidad confirmada por el usuario: ${candidate.why || candidate.name}`);
+  };
+
   // Interpreta lenguaje natural (voz o texto) y despacha la acción.
   const handleNaturalLanguage = async (text, context) => {
     pushToHistory({ type: "output", text: "[ia] interpretando…" });
@@ -316,6 +343,14 @@ export function useTerminal() {
         break;
       case "route":
         await handleRoute([action.text || text]);
+        break;
+      case "investigate":
+        if (action.seed) handleInvestigate(action.seed, action.hint || "");
+        else
+          pushToHistory({
+            type: "error",
+            text: "Entendí que quieres investigar, pero no una persona clara.",
+          });
         break;
       case "command":
         if (action.command) await handleCommand(action.command, context);
@@ -782,6 +817,7 @@ OSINT TERMINAL
     sound.unlock();
 
     currentScanRef.current = createScanRecord({ kind, query: queryFallback });
+    candidatePausedRef.current = false;
 
     const finish = () => {
       setIsProcessing(false);
@@ -869,6 +905,26 @@ OSINT TERMINAL
         sound.lock(); // objetivo fijado: identidad resuelta
         pushScan({ type: "scan", scan: "ai", text: d?.text ?? "" });
       },
+      reasoning: (d) => {
+        if (!d) return;
+        pushToHistory({
+          type: "scan",
+          scan: "reasoning",
+          step: d.step,
+          thought: d.thought,
+          action: d.action,
+        });
+      },
+      candidate: (d) => {
+        if (!d?.candidates?.length) return;
+        candidatePausedRef.current = true;
+        pushToHistory({ type: "candidates", items: d.candidates });
+      },
+      dossier: (d) => {
+        if (!d) return;
+        sound.lock();
+        pushToHistory({ type: "dossier", data: d });
+      },
       done: (d) => {
         sound.done();
         const s = d?.summary || {};
@@ -889,8 +945,10 @@ OSINT TERMINAL
             },
           });
         }
-        pendingSaveRef.current = currentScanRef.current;
-        pushToHistory({ type: "output", text: "◈ ¿archivar en la bóveda? [s/n]" });
+        if (!candidatePausedRef.current) {
+          pendingSaveRef.current = currentScanRef.current;
+          pushToHistory({ type: "output", text: "◈ ¿archivar en la bóveda? [s/n]" });
+        }
         finish();
       },
       error: (err) => {
@@ -1019,5 +1077,6 @@ OSINT TERMINAL
     handleCommand,
     cancelActiveStream,
     runImageScan,
+    pickCandidate,
   };
 }
