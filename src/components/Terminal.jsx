@@ -5,6 +5,7 @@ import { useClientInfo, useSystemStats } from "../hooks/useClientInfo";
 import PromptLine from "./PromptLine";
 import OutputLine from "./OutputLine";
 import GodEye from "./GodEye";
+import LiveTheater from "./LiveTheater";
 import UsageIndicator from "./UsageIndicator";
 import AsciiBanner from "./AsciiBanner";
 import { THEMES, AVAILABLE_THEMES } from "../theme/themes";
@@ -85,11 +86,11 @@ export default function Terminal({ user, onLogout }) {
     history,
     isProcessing,
     statusText,
-    scanProgress,
     handleCommand,
     cancelActiveStream,
     runImageScan,
     pickCandidate,
+    liveScan,
   } = useTerminal();
 
   const fileInputRef = useRef(null);
@@ -378,33 +379,7 @@ export default function Terminal({ user, onLogout }) {
           ))}
 
           {isProcessing && (
-            <div className="mt-2 text-xs">
-              <div
-                className={`flex items-center gap-2 ${colors.headerMetricsText || "text-green-300"}`}
-              >
-                <span className="h-4 w-4 shrink-0">
-                  <GodEye state="scanning" className={colors.bannerText || ""} />
-                </span>
-                <span className="animate-pulse">
-                  {statusText || "rastreando…"}
-                </span>
-                <span className="opacity-40">· ctrl+c para abortar</span>
-              </div>
-              {scanProgress?.total ? (
-                <div className="mt-1.5 h-[3px] w-full max-w-md overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className={`h-full rounded-full transition-[width] duration-200 ease-out ${colors.netBar || "bg-green-500/80"}`}
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.round((scanProgress.checked / scanProgress.total) * 100)
-                      )}%`,
-                      boxShadow: "0 0 6px currentColor",
-                    }}
-                  />
-                </div>
-              ) : null}
-            </div>
+            <LiveTheater liveScan={liveScan} statusText={statusText} />
           )}
 
           <form onSubmit={onSubmit} className="mt-2">
