@@ -12,6 +12,19 @@ dist
 dist-ssr
 *.local
 
+# Local env files with secrets — keep committed templates + the public prod config.
+# (docs/ is the GitHub Pages build output and is committed on purpose — do NOT ignore it.)
+.env
+.env.*.local
+!.env.example
+!.env.production
+
+# Test coverage output (vitest)
+coverage
+
+# Superpowers skill scratch (brainstorm mockups, SDD ledgers/reports/review packages)
+.superpowers/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
